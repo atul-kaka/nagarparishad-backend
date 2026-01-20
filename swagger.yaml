@@ -1,0 +1,1963 @@
+openapi: 3.0.0
+info:
+  title: Nagar Parishad School Leaving Certificate API
+  version: 1.0.0
+  description: RESTful API for managing Nagar Parishad School Leaving Certificates with audit trail support
+  contact:
+    name: API Support
+    email: support@nagarparishad.gov.in
+  license:
+    name: ISC
+    url: https://opensource.org/licenses/ISC
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.kaamlo.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Authentication
+    description: User authentication and authorization endpoints
+  - name: Schools
+    description: School management endpoints
+  - name: Students
+    description: Student management endpoints
+  - name: Certificates
+    description: Leaving certificate management endpoints (RBAC protected)
+  - name: Users
+    description: User registration and management
+  - name: Audit
+    description: Audit trail and logging endpoints
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Nagar Parishad Backend Service is running
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /:
+    get:
+      summary: API information
+      tags: [Health]
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  version:
+                    type: string
+                  endpoints:
+                    type: object
+
+  /api/schools:
+    get:
+      summary: Get all schools
+      tags: [Schools]
+      responses:
+        '200':
+          description: List of all schools
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/School'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    
+    post:
+      summary: Create a new school
+      tags: [Schools]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - district
+              properties:
+                name:
+                  type: string
+                  example: स्व. जतिरामजी बर्वे नगर परिषद प्राथमिक शाळा, रामटेक
+                district:
+                  type: string
+                  example: नागपूर
+                state:
+                  type: string
+                  example: महाराष्ट्र
+                created_by:
+                  type: integer
+                  description: User ID who created this record
+      responses:
+        '201':
+          description: School created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/School'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/schools/{id}:
+    get:
+      summary: Get school by ID
+      tags: [Schools]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: School ID
+      responses:
+        '200':
+          description: School details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/School'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      summary: Update school
+      tags: [Schools]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/School'
+      responses:
+        '200':
+          description: School updated successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      summary: Delete school
+      tags: [Schools]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: School deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/auth/register:
+    post:
+      summary: Register a new user (Super Admin only)
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - full_name
+                - role
+              properties:
+                username:
+                  type: string
+                  example: newadmin
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: SecurePassword123!
+                full_name:
+                  type: string
+                  example: New Admin User
+                role:
+                  type: string
+                  enum: [user, admin, super]
+                  example: admin
+                phone_no:
+                  type: string
+                  example: '1234567890'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Only Super Admin can register users
+        '409':
+          description: Username or email already exists
+
+  /api/auth/login:
+    post:
+      summary: Login with username and password
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: admin123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT token for authentication
+                      user:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Account locked or deactivated
+
+  /api/auth/otp/request:
+    post:
+      summary: Request OTP for mobile authentication
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone_no
+              properties:
+                phone_no:
+                  type: string
+                  example: '1234567890'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: User not found with this phone number
+
+  /api/auth/otp/verify:
+    post:
+      summary: Verify OTP and login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone_no
+                - otp
+              properties:
+                phone_no:
+                  type: string
+                  example: '1234567890'
+                otp:
+                  type: string
+                  example: '123456'
+      responses:
+        '200':
+          description: OTP verified and login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid or expired OTP
+
+  /api/auth/logout:
+    post:
+      summary: Logout user and invalidate session
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      user_id:
+                        type: integer
+                      username:
+                        type: string
+                      logged_out_at:
+                        type: string
+                        format: date-time
+        '401':
+          description: Not authenticated
+
+  /api/auth/logout/all:
+    post:
+      summary: Logout from all devices/sessions
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out from all devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      user_id:
+                        type: integer
+                      username:
+                        type: string
+                      logged_out_at:
+                        type: string
+                        format: date-time
+        '401':
+          description: Not authenticated
+
+  /api/auth/me:
+    get:
+      summary: Get current user information
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      active_sessions:
+                        type: integer
+                        description: Number of active sessions
+        '401':
+          description: Not authenticated
+
+  /api/auth/password/reset/request:
+    post:
+      summary: Request password reset (Admin/Super Admin only)
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+      responses:
+        '200':
+          description: Reset token sent to email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  token:
+                    type: string
+                    description: Reset token (only in development mode)
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Token expiration (only in development mode)
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          description: Password reset only available for Admin and Super Admin
+
+  /api/auth/password/reset/verify:
+    post:
+      summary: Verify reset token and reset password
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - new_password
+              properties:
+                token:
+                  type: string
+                  description: Reset token from email
+                  example: abc123def456...
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: NewSecurePassword123!
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid token or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/password/change:
+    post:
+      summary: Change password (for authenticated users)
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - current_password
+                - new_password
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                  example: OldPassword123!
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: NewSecurePassword123!
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid current password
+        '401':
+          description: Not authenticated
+
+  /api/auth/token/refresh:
+    post:
+      summary: Refresh JWT token
+      description: Get a new access token using the current token (even if expired, within grace period)
+      tags: [Authentication]
+      requestBody:
+        required: false
+        description: Token can be provided in Authorization header or body
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Current JWT token (optional if provided in header)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: New JWT access token
+                      expires_in:
+                        type: string
+                        description: Token expiration time (e.g., "15m")
+                      user:
+                        $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Account deactivated or password expired
+
+  /api/students:
+    get:
+      summary: Get all students
+      tags: [Students]
+      responses:
+        '200':
+          description: List of all students
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+    
+    post:
+      summary: Create a new student
+      tags: [Students]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - full_name
+                - date_of_birth
+              properties:
+                full_name:
+                  type: string
+                  example: राजेश कुमार
+                date_of_birth:
+                  type: string
+                  format: date
+                  example: '2010-05-15'
+                created_by:
+                  type: integer
+      responses:
+        '201':
+          description: Student created successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Student ID or Aadhar already exists
+
+  /api/students/{id}:
+    get:
+      summary: Get student by ID
+      tags: [Students]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student details
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      summary: Update student
+      tags: [Students]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+      responses:
+        '200':
+          description: Student updated successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      summary: Delete student
+      tags: [Students]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/students/search/{identifier}:
+    get:
+      summary: Search student by Student ID or Aadhar number
+      tags: [Students]
+      parameters:
+        - in: path
+          name: identifier
+          required: true
+          schema:
+            type: string
+          description: Student ID or Aadhar number
+      responses:
+        '200':
+          description: Student found
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/certificates:
+    get:
+      summary: Get all certificates with pagination and filters (RBAC protected)
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Items per page
+        - in: query
+          name: school_id
+          schema:
+            type: integer
+          description: Filter by school ID
+        - in: query
+          name: student_id
+          schema:
+            type: integer
+          description: Filter by student ID
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]
+          description: Filter by status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by student name or serial number
+      responses:
+        '200':
+          description: Paginated list of certificates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeavingCertificate'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Access denied
+    
+    post:
+      summary: Create a new leaving certificate (Admin/Super only)
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - school_id
+                - student_id
+                - serial_no
+                - leaving_date
+                - leaving_class
+              properties:
+                school_id:
+                  type: integer
+                student_id:
+                  type: integer
+                serial_no:
+                  type: string
+                  example: '101'
+                leaving_date:
+                  type: string
+                  format: date
+                  example: '2024-03-31'
+                leaving_class:
+                  type: string
+                  example: 'Class 5'
+                created_by:
+                  type: integer
+      responses:
+        '201':
+          description: Certificate created successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Only Admin and Super Admin can create certificates
+        '409':
+          description: Certificate with this serial number already exists
+
+  /api/certificates/{id}:
+    get:
+      summary: Get certificate by ID with full details (RBAC protected, logs visit)
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Certificate details with school and student information
+        '401':
+          description: Not authenticated
+        '403':
+          description: Access denied (Users can only view accepted documents)
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      summary: Update certificate (Admin/Super only, cannot edit accepted)
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeavingCertificate'
+      responses:
+        '200':
+          description: Certificate updated successfully
+        '401':
+          description: Not authenticated
+        '403':
+          description: Access denied or cannot edit accepted documents
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      summary: Delete certificate (Admin/Super only)
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Certificate deleted successfully
+        '401':
+          description: Not authenticated
+        '403':
+          description: Only Admin and Super Admin can delete certificates
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/certificates/{id}/status:
+    patch:
+      summary: Update certificate status (Super Admin for approve/reject)
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      description: Updates certificate status. Only Super Admin can approve/reject. Admin can submit for review.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Certificate ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]
+                  example: accepted
+                  description: |
+                    - new: When created by Admin
+                    - in_review: When submitted for review
+                    - rejected: When rejected by Super Admin
+                    - accepted: When approved by Super Admin
+                    - draft, issued, archived, cancelled: Legacy statuses
+                reason:
+                  type: string
+                  example: All documents verified and approved
+                notes:
+                  type: string
+                  example: Certificate ready for issue
+                user_id:
+                  type: integer
+                  description: User ID making the change (for audit trail)
+                  example: 1
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LeavingCertificate'
+                  message:
+                    type: string
+                    example: Certificate status updated to accepted
+        '400':
+          description: Invalid status value
+        '401':
+          description: Not authenticated
+        '403':
+          description: Access denied (Only Super Admin can approve/reject)
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/certificates/bulk:
+    post:
+      summary: Create certificate with school and student data in one request
+      tags: [Certificates]
+      description: Accepts frontend format (camelCase) and creates school, student, and certificate automatically
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  description: Certificate data in frontend format (camelCase)
+                  properties:
+                    phoneNumber:
+                      type: string
+                    serialNumber:
+                      type: string
+                    schoolRecognitionNumber:
+                      type: string
+                    udiseNumber:
+                      type: string
+                    email:
+                      type: string
+                    generalRegisterNumber:
+                      type: string
+                    medium:
+                      type: string
+                    affiliationNumber:
+                      type: string
+                    studentId:
+                      type: string
+                    uidAadhaarNumber:
+                      type: string
+                    fullName:
+                      type: string
+                    fatherName:
+                      type: string
+                    surname:
+                      type: string
+                    motherName:
+                      type: string
+                    nationality:
+                      type: string
+                    motherTongue:
+                      type: string
+                    religion:
+                      type: string
+                    caste:
+                      type: string
+                    subCaste:
+                      type: string
+                    placeOfBirth:
+                      type: string
+                    taluka:
+                      type: string
+                    district:
+                      type: string
+                    state:
+                      type: string
+                    country:
+                      type: string
+                    dateOfBirth:
+                      type: string
+                      format: date
+                    dateOfBirthInWords:
+                      type: string
+                    previousSchool:
+                      type: string
+                    previousClass:
+                      type: string
+                    admissionDate:
+                      type: string
+                      format: date
+                    admissionClass:
+                      type: string
+                    academicProgress:
+                      type: string
+                    conduct:
+                      type: string
+                    leavingDate:
+                      type: string
+                      format: date
+                    leavingClass:
+                      type: string
+                    classStudyingDetails:
+                      type: string
+                    reasonForLeaving:
+                      type: string
+                    remarks:
+                      type: string
+                    generalRegisterReference:
+                      type: string
+                    certificateDate:
+                      type: string
+                      format: date
+                    certificateMonth:
+                      type: string
+                    certificateYear:
+                      type: string
+                      description: Can be in Marathi numerals (e.g., "२०२४")
+                    classTeacherSignature:
+                      type: string
+                    clerkSignature:
+                      type: string
+                    headmasterSignature:
+                      type: string
+                createdBy:
+                  type: string
+                  description: Username or user ID
+      responses:
+        '201':
+          description: Certificate created successfully with school and student
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LeavingCertificate'
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Certificate with this serial number already exists
+
+  /api/certificates/{id}/status-history:
+    get:
+      summary: Get certificate status change history
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      description: Returns complete history of status changes for a certificate
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Certificate ID
+      responses:
+        '200':
+          description: Status history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        certificate_id:
+                          type: integer
+                        old_status:
+                          type: string
+                        new_status:
+                          type: string
+                        changed_by:
+                          type: integer
+                        changed_by_username:
+                          type: string
+                        changed_by_name:
+                          type: string
+                        changed_at:
+                          type: string
+                          format: date-time
+                        reason:
+                          type: string
+                        notes:
+                          type: string
+
+  /api/certificates/school/{schoolId}/serial/{serialNo}:
+    get:
+      summary: Get certificate by serial number and school
+      tags: [Certificates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: schoolId
+          required: true
+          schema:
+            type: integer
+          description: School ID
+        - in: path
+          name: serialNo
+          required: true
+          schema:
+            type: string
+          description: Serial number
+      responses:
+        '200':
+          description: Certificate found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LeavingCertificate'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Access denied
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/users/register:
+    post:
+      summary: Register a new user (DEPRECATED - Use /api/auth/register instead)
+      tags: [Users]
+      deprecated: true
+      description: This endpoint is deprecated. Please use /api/auth/register (Super Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+                - full_name
+              properties:
+                username:
+                  type: string
+                  example: john_doe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: securepass123
+                full_name:
+                  type: string
+                  example: John Doe
+                role:
+                  type: string
+                  enum: [user, admin, clerk, headmaster]
+                  default: user
+                phone_no:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Username or email already exists
+
+  /api/users:
+    get:
+      summary: Get all users
+      tags: [Users]
+      responses:
+        '200':
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+  /api/users/{id}:
+    get:
+      summary: Get user by ID
+      tags: [Users]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User details
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      summary: Update user
+      tags: [Users]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/audit:
+    get:
+      summary: Get audit logs with optional filters
+      tags: [Audit]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: table_name
+          schema:
+            type: string
+          description: Filter by table name (schools, students, leaving_certificates)
+        - in: query
+          name: record_id
+          schema:
+            type: integer
+          description: Filter by record ID
+        - in: query
+          name: changed_by
+          schema:
+            type: integer
+          description: Filter by user ID
+        - in: query
+          name: action
+          schema:
+            type: string
+            enum: [INSERT, UPDATE, DELETE]
+          description: Filter by action type
+        - in: query
+          name: action_type
+          schema:
+            type: string
+            enum: [view, add, update, delete, login, logout]
+          description: Filter by action type (enhanced)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+          description: Items per page
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Start date filter
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: End date filter
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+          description: Limit number of results
+      responses:
+        '200':
+          description: List of audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+
+  /api/audit/{table_name}/{record_id}:
+    get:
+      summary: Get audit logs for specific table and record
+      tags: [Audit]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: table_name
+          required: true
+          schema:
+            type: string
+            enum: [schools, students, leaving_certificates]
+          description: Table name
+        - in: path
+          name: record_id
+          required: true
+          schema:
+            type: integer
+          description: Record ID
+      responses:
+        '200':
+          description: Audit logs for the record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+        '401':
+          description: Not authenticated
+
+  /api/audit/visits:
+    get:
+      summary: Get record visits (document views)
+      tags: [Audit]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: table_name
+          schema:
+            type: string
+          description: Filter by table name
+        - in: query
+          name: record_id
+          schema:
+            type: integer
+          description: Filter by record ID
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: Filter by user ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: Items per page
+      responses:
+        '200':
+          description: List of record visits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        user_id:
+                          type: integer
+                        table_name:
+                          type: string
+                        record_id:
+                          type: integer
+                        ip_address:
+                          type: string
+                        user_agent:
+                          type: string
+                        location:
+                          type: string
+                        mobile_number:
+                          type: string
+                        visited_at:
+                          type: string
+                          format: date-time
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: Not authenticated
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/auth/login or /api/auth/otp/verify
+
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 50
+        totalPages:
+          type: integer
+          example: 5
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          format: password
+          example: admin123
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: JWT token for authentication
+            user:
+              $ref: '#/components/schemas/User'
+    School:
+      type: object
+      required: [name, district]
+      properties:
+        id:
+          type: integer
+          description: School ID
+        name:
+          type: string
+          description: School name
+          example: स्व. जतिरामजी बर्वे नगर परिषद प्राथमिक शाळा, रामटेक
+        address:
+          type: string
+          description: School address
+        taluka:
+          type: string
+          example: रामटेक
+        district:
+          type: string
+          example: नागपूर
+        state:
+          type: string
+          example: महाराष्ट्र
+        phone_no:
+          type: string
+          example: '07112234567'
+        email:
+          type: string
+          format: email
+        general_register_no:
+          type: string
+          example: GR001
+        school_recognition_no:
+          type: string
+        udise_no:
+          type: string
+        affiliation_no:
+          type: string
+        board:
+          type: string
+          default: Maharashtra State
+        medium:
+          type: string
+          default: Marathi
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          default: active
+        created_by:
+          type: integer
+          description: User ID who created the record
+        updated_by:
+          type: integer
+          description: User ID who last updated the record
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Student:
+      type: object
+      required: [full_name, date_of_birth]
+      properties:
+        id:
+          type: integer
+        student_id:
+          type: string
+          example: STU001
+        uid_aadhar_no:
+          type: string
+          pattern: '^[0-9]{12}$'
+          description: 12-digit Aadhar number
+          example: '123456789012'
+        full_name:
+          type: string
+          example: राजेश कुमार
+        father_name:
+          type: string
+          example: राम कुमार
+        mother_name:
+          type: string
+          example: गीता देवी
+        surname:
+          type: string
+          example: शर्मा
+        nationality:
+          type: string
+          example: Indian
+        mother_tongue:
+          type: string
+          example: Marathi
+        religion:
+          type: string
+        caste:
+          type: string
+        sub_caste:
+          type: string
+        birth_place_village:
+          type: string
+          example: रामटेक
+        birth_place_taluka:
+          type: string
+        birth_place_district:
+          type: string
+          example: नागपूर
+        birth_place_state:
+          type: string
+          example: महाराष्ट्र
+        birth_place_country:
+          type: string
+          default: India
+        date_of_birth:
+          type: string
+          format: date
+          example: '2010-05-15'
+        date_of_birth_words:
+          type: string
+          example: पंधरा मे दोन हजार दहा
+        status:
+          type: string
+          enum: [active, inactive, archived]
+          default: active
+        created_by:
+          type: integer
+        updated_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LeavingCertificate:
+      type: object
+      required: [school_id, student_id, serial_no, leaving_date, leaving_class]
+      properties:
+        id:
+          type: integer
+        school_id:
+          type: integer
+          description: Reference to schools table
+        student_id:
+          type: integer
+          description: Reference to students table
+        serial_no:
+          type: string
+          example: '101'
+        previous_school:
+          type: string
+        previous_class:
+          type: string
+        admission_date:
+          type: string
+          format: date
+          example: '2019-06-01'
+        admission_class:
+          type: string
+          example: Class 1
+        progress_in_studies:
+          type: string
+          example: Good
+        conduct:
+          type: string
+          example: Excellent
+        leaving_date:
+          type: string
+          format: date
+          example: '2024-03-31'
+        leaving_class:
+          type: string
+          example: Class 5
+        studying_class_and_since:
+          type: string
+          example: Class 5 since June 2023
+        reason_for_leaving:
+          type: string
+          example: Transfer to another school
+        remarks:
+          type: string
+        general_register_ref:
+          type: string
+          example: GR001
+        certificate_date:
+          type: string
+          format: date
+          example: '2024-04-01'
+        certificate_month:
+          type: string
+          example: April
+        certificate_year:
+          type: integer
+          example: 2024
+        class_teacher_name:
+          type: string
+          example: श्रीमती सुनीता पाटिल
+        clerk_name:
+          type: string
+          example: श्री रवींद्र जोशी
+        headmaster_name:
+          type: string
+          example: श्री महेश देशमुख
+        status:
+          type: string
+          enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]
+          default: new
+          description: |
+            - new: When created by Admin (can edit)
+            - in_review: When submitted for review (can edit)
+            - rejected: When rejected by Super Admin (can edit)
+            - accepted: When approved by Super Admin (cannot edit, except Super Admin)
+            - draft, issued, archived, cancelled: Legacy statuses
+        created_by:
+          type: integer
+        updated_by:
+          type: integer
+        issued_by:
+          type: integer
+          description: User ID who issued the certificate
+        issued_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      required: [username, email, password, full_name]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+          example: john_doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          minLength: 6
+          writeOnly: true
+        full_name:
+          type: string
+          example: John Doe
+        role:
+          type: string
+          enum: [user, admin, super]
+          default: user
+          description: |
+            - user: Read-only access, can only view accepted documents
+            - admin: Read and write access, can add/view/search/edit
+            - super: Read, write, and approval access, can review (accept/reject)
+        phone_no:
+          type: string
+        is_active:
+          type: boolean
+          default: true
+        last_login:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        table_name:
+          type: string
+          example: leaving_certificates
+        record_id:
+          type: integer
+        action:
+          type: string
+          enum: [INSERT, UPDATE, DELETE]
+        action_type:
+          type: string
+          enum: [view, add, update, delete, login, logout]
+          description: Type of action for audit tracking
+        location:
+          type: string
+          description: Geographic location of the action
+        field_name:
+          type: string
+        old_value:
+          type: string
+        new_value:
+          type: string
+        changed_by:
+          type: integer
+        changed_by_username:
+          type: string
+        changed_by_name:
+          type: string
+        changed_at:
+          type: string
+          format: date-time
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        notes:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Error message
+        errors:
+          type: array
+          items:
+            type: object
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        message:
+          type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Resource not found
+    
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            errors:
+              - msg: Field is required
+                param: field_name
+    
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: Internal server error
+

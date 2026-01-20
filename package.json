@@ -1,0 +1,43 @@
+{
+  "name": "nagarparishad-backend",
+  "version": "1.0.0",
+  "description": "Backend service for Nagar Parishad School Leaving Certificate Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate-audit": "node scripts/migrate-audit.js",
+    "migrate-rbac": "node scripts/migrate-rbac.js",
+    "migrate-password-reset": "node scripts/migrate-password-reset.js",
+    "create-test-user": "node scripts/create-test-user.js",
+    "test-login": "node scripts/test-login.js",
+    "check-db": "node scripts/check-database.js",
+    "view-data": "node scripts/view-data.js",
+    "swagger-yaml": "node scripts/generate-swagger-yaml.js"
+  },
+  "keywords": [
+    "nagarparishad",
+    "school",
+    "certificate",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "express-validator": "^7.0.1",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "js-yaml": "^4.1.0"
+  }
+}
+
