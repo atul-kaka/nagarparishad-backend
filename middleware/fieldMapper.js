@@ -15,6 +15,7 @@ const certificateFieldMap = {
   
   // Student fields
   studentId: 'student_id',
+  studentFullName: 'full_name',
   uidAadhaarNumber: 'uid_aadhar_no',
   fullName: 'full_name',
   fatherName: 'father_name',
@@ -39,9 +40,9 @@ const certificateFieldMap = {
   certificateDate: 'certificate_date',
   certificateMonth: 'certificate_month',
   certificateYear: 'certificate_year',
-  classTeacherSignature: 'class_teacher_name',
-  clerkSignature: 'clerk_name',
-  headmasterSignature: 'headmaster_name',
+  classTeacherSignature: 'class_teacher_signature',
+  clerkSignature: 'clerk_signature',
+  headmasterSignature: 'headmaster_signature',
   
   // Audit fields
   createdBy: 'created_by',

@@ -46,6 +46,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Routes
 app.use('/api/schools', require('./routes/schools'));
 app.use('/api/students', require('./routes/students'));
+app.use('/api/students', require('./routes/students-consolidated'));
+app.use('/api/students', require('./routes/students-status'));
 // Authentication routes (no auth required)
 app.use('/api/auth', require('./routes/auth'));
 

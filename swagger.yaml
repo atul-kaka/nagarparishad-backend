@@ -648,11 +648,67 @@ paths:
 
   /api/students:
     get:
-      summary: Get all students
+      summary: Get all students with pagination and filters
       tags: [Students]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+          description: Number of records per page
+        - in: query
+          name: school_id
+          schema:
+            type: integer
+          description: Filter by school ID
+        - in: query
+          name: school_name
+          schema:
+            type: string
+          description: Filter by school name (partial match)
+          example: "नगर परिषद"
+        - in: query
+          name: school_recognition_no
+          schema:
+            type: string
+          description: Filter by school recognition number (exact match)
+          example: "4260/37"
+        - in: query
+          name: udise_no
+          schema:
+            type: string
+          description: Filter by UDISE number (exact match)
+          example: "27090100102"
+        - in: query
+          name: school_identifier
+          schema:
+            type: string
+          description: Search by any school identifier (searches in name, recognition_no, udise_no, general_register_no, affiliation_no)
+          example: "4260/37"
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, in_review, rejected, accepted, issued, archived, cancelled]
+          description: Filter by certificate status
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: General search in student name, student_id, serial_no, school name, recognition_no, or udise_no
       responses:
         '200':
-          description: List of all students
+          description: List of students with pagination
           content:
             application/json:
               schema:
@@ -664,10 +720,24 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Student'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      total_pages:
+                        type: integer
     
     post:
-      summary: Create a new student
+      summary: Create a new student (Admin only)
       tags: [Students]
+      security:
+        - bearerAuth: []
+      description: Only Admin can create student records. New records default to 'draft' status.
       requestBody:
         required: true
         content:
@@ -692,6 +762,10 @@ paths:
           description: Student created successfully
         '400':
           $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Authentication required
+        '403':
+          description: Only Admin can create student records
         '409':
           description: Student ID or Aadhar already exists
 
@@ -699,6 +773,8 @@ paths:
     get:
       summary: Get student by ID
       tags: [Students]
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -729,12 +805,19 @@ paths:
       responses:
         '200':
           description: Student updated successfully
+        '401':
+          description: Authentication required
+        '403':
+          description: Only Admin can edit. Only draft/rejected records can be edited.
         '404':
           $ref: '#/components/responses/NotFound'
     
     delete:
-      summary: Delete student
+      summary: Delete student (Admin only, draft/rejected only)
       tags: [Students]
+      security:
+        - bearerAuth: []
+      description: Only Admin can delete student records. Only draft and rejected records can be deleted. Approved records cannot be deleted.
       parameters:
         - in: path
           name: id
@@ -744,6 +827,10 @@ paths:
       responses:
         '200':
           description: Student deleted successfully
+        '401':
+          description: Authentication required
+        '403':
+          description: Only Admin can delete. Only draft/rejected records can be deleted. Approved records cannot be deleted.
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -763,6 +850,258 @@ paths:
           description: Student found
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /api/students/{id}/status:
+    patch:
+      summary: Update student/certificate status with state machine validation
+      description: Updates status following proper state machine rules. Only Admin can submit for review (draft → in_review). Only Super Admin can approve/reject (in_review → accepted/rejected). Cannot directly approve draft.
+      tags: [Students]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Student ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [draft, in_review, rejected, accepted, issued, archived, cancelled]
+                  example: in_review
+                  description: New status. Must follow state machine rules.
+                reason:
+                  type: string
+                  description: Reason for status change
+                  example: Submitted for review
+                notes:
+                  type: string
+                  description: Additional notes
+      responses:
+        '200':
+          description: Status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Status updated from draft to in_review
+                  data:
+                    $ref: '#/components/schemas/Student'
+        '400':
+          description: Invalid status transition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Cannot transition from draft to accepted. Valid transitions from draft are: in_review, cancelled"
+        '403':
+          description: Not authorized for this action
+        '404':
+          description: Student not found
+
+  /api/students/{id}/status/transitions:
+    get:
+      summary: Get allowed status transitions for a student
+      description: Returns the current status and all allowed transitions based on state machine rules
+      tags: [Students]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Student ID
+      responses:
+        '200':
+          description: Allowed transitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      current_status:
+                        type: string
+                        example: draft
+                      allowed_transitions:
+                        type: array
+                        items:
+                          type: string
+                        example: [in_review, cancelled]
+                      can_edit:
+                        type: boolean
+                        description: Whether the record can be edited
+                      is_final_state:
+                        type: boolean
+                        description: Whether this is a final state (cannot be changed)
+        '404':
+          description: Student not found
+
+  /api/students/consolidated:
+    post:
+      summary: Create student with all certificate data in one request
+      description: Accepts frontend format (camelCase) and creates student with certificate data. School must exist - provide school_id or school_recognition_no to find existing school. If school doesn't exist, returns error.
+      tags: [Students]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  description: Student and certificate data in frontend format (camelCase)
+                  properties:
+                    school_id:
+                      type: integer
+                      example: 1
+                      description: School ID (required if school_recognition_no not provided)
+                    school_recognition_no:
+                      type: string
+                      example: "4260/37"
+                      description: School recognition number (required if school_id not provided) - school must exist
+                    phoneNumber:
+                      type: string
+                      example: "07114-234567"
+                    serialNumber:
+                      type: string
+                      example: "102"
+                    studentId:
+                      type: string
+                      example: "STU-0002"
+                    studentFullName:
+                      type: string
+                      example: "प्रिया सुनील देशमुख"
+                    fatherName:
+                      type: string
+                      example: "सुनील देशमुख"
+                    motherName:
+                      type: string
+                      example: "कविता देशमुख"
+                    dateOfBirth:
+                      type: string
+                      format: date
+                      example: "2011-08-20"
+                    leavingDate:
+                      type: string
+                      format: date
+                      example: "2024-03-25"
+                    leavingClass:
+                      type: string
+                      example: "आठवी"
+                    certificateYear:
+                      type: string
+                      example: "२०२४"
+                      description: Can be Marathi numerals or Arabic numbers
+                    status:
+                      type: string
+                      enum: [draft, in_review, rejected, accepted, issued, archived, cancelled]
+                      default: draft
+                  required:
+                    - studentFullName
+                    - dateOfBirth
+            examples:
+              fullExample:
+                summary: Full student with certificate data
+                value:
+                  data:
+                    school_recognition_no: "4260/37"
+                    phoneNumber: "07114-234567"
+                    serialNumber: "102"
+                    schoolRecognitionNumber: "SR-2024-002"
+                    udiseNumber: "27090100102"
+                    email: "school@ramtekparishad.gov.in"
+                    generalRegisterNumber: "GR-5002"
+                    medium: "मराठी"
+                    affiliationNumber: "AFF-2024-124"
+                    studentId: "STU-0002"
+                    uidAadhaarNumber: "234523452345"
+                    studentFullName: "प्रिया सुनील देशमुख"
+                    fatherName: "सुनील देशमुख"
+                    surname: "देशमुख"
+                    motherName: "कविता देशमुख"
+                    nationality: "भारतीय"
+                    motherTongue: "मराठी"
+                    religion: "हिंदू"
+                    caste: "मराठा"
+                    subCaste: "देशमुख"
+                    placeOfBirth: "रामटेक"
+                    taluka: "रामटेक"
+                    district: "नागपूर"
+                    state: "महाराष्ट्र"
+                    country: "भारत"
+                    dateOfBirth: "2011-08-20"
+                    dateOfBirthInWords: "वीस ऑगस्ट दोन हजार अकरा"
+                    previousSchool: "स्व. जतिरामजी बर्वे नगर परिषद प्राथमिक शाळा, रामटेक"
+                    previousClass: "पाचवी"
+                    admissionDate: "2018-06-10"
+                    admissionClass: "सहावी"
+                    academicProgress: "उत्तम"
+                    conduct: "उत्तम"
+                    leavingDate: "2024-03-25"
+                    leavingClass: "आठवी"
+                    classStudyingDetails: "आठवीत शिकत होती"
+                    reasonForLeaving: "शैक्षणिक कारणास्तव"
+                    remarks: "अभ्यासू व मेहनती विद्यार्थी"
+                    generalRegisterReference: "5002"
+                    certificateDate: "2024-04-01"
+                    certificateMonth: "एप्रिल"
+                    certificateYear: "२०२४"
+                    classTeacherSignature: "वर्गशिक्षक"
+                    clerkSignature: "लेखनिक"
+                    headmasterSignature: "मुख्याध्यापक"
+                    status: "draft"
+      responses:
+        '201':
+          description: "Student created/updated successfully with certificate data (default status: draft)"
+        '401':
+          description: Authentication required
+        '403':
+          description: Only Admin can create/update. Only draft/rejected records can be updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Student ID or Aadhar number already exists
 
   /api/certificates:
     get:
@@ -800,7 +1139,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]
+            enum: [draft, in_review, rejected, accepted, issued, archived, cancelled]
           description: Filter by status
         - in: query
           name: search
@@ -969,7 +1308,7 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]
+                  enum: [draft, in_review, rejected, accepted, issued, archived, cancelled]
                   example: accepted
                   description: |
                     - new: When created by Admin
@@ -1632,7 +1971,7 @@ components:
           default: Marathi
         status:
           type: string
-          enum: [active, inactive, archived]
+          enum: [active, inactive, archived, draft]
           default: active
         created_by:
           type: integer
@@ -1706,14 +2045,91 @@ components:
         date_of_birth_words:
           type: string
           example: पंधरा मे दोन हजार दहा
+        # School reference
+        school_id:
+          type: integer
+          description: Reference to the school issuing the certificate
+        school_name:
+          type: string
+          description: School name (joined from schools table)
+        school_recognition_no:
+          type: string
+          description: School recognition number (joined from schools table)
+        # Certificate fields
+        serial_no:
+          type: string
+          example: "102"
+          description: Certificate serial number
+        previous_school:
+          type: string
+          example: "स्व. जतिरामजी बर्वे नगर परिषद प्राथमिक शाळा"
+        previous_class:
+          type: string
+          example: "पाचवी"
+        admission_date:
+          type: string
+          format: date
+          example: '2018-06-10'
+        admission_class:
+          type: string
+          example: "सहावी"
+        progress_in_studies:
+          type: string
+          example: "उत्तम"
+          description: Academic progress
+        conduct:
+          type: string
+          example: "उत्तम"
+        leaving_date:
+          type: string
+          format: date
+          example: '2024-03-25'
+        leaving_class:
+          type: string
+          example: "आठवी"
+        studying_class_and_since:
+          type: string
+          example: "आठवीत शिकत होती"
+          description: Class studying details
+        reason_for_leaving:
+          type: string
+          example: "शैक्षणिक कारणास्तव"
+        remarks:
+          type: string
+          example: "अभ्यासू व मेहनती विद्यार्थी"
+        general_register_ref:
+          type: string
+          example: "5002"
+        certificate_date:
+          type: string
+          format: date
+          example: '2024-04-01'
+        certificate_month:
+          type: string
+          example: "एप्रिल"
+        certificate_year:
+          type: integer
+          example: 2024
+        class_teacher_signature:
+          type: string
+          example: "वर्गशिक्षक"
+        clerk_signature:
+          type: string
+          example: "लेखनिक"
+        headmaster_signature:
+          type: string
+          example: "मुख्याध्यापक"
         status:
           type: string
-          enum: [active, inactive, archived]
-          default: active
+          enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]
+          default: new
+          description: Certificate status
         created_by:
           type: integer
+          description: User ID who created the record
         updated_by:
           type: integer
+          description: User ID who last updated the record
         created_at:
           type: string
           format: date-time

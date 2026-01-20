@@ -39,6 +39,12 @@ class School {
     return result.rows;
   }
 
+  static async findByRecognitionNo(recognitionNo) {
+    const query = 'SELECT * FROM schools WHERE school_recognition_no = $1';
+    const result = await pool.query(query, [recognitionNo]);
+    return result.rows[0];
+  }
+
   static async update(id, schoolData) {
     const fields = Object.keys(schoolData);
     const values = Object.values(schoolData);

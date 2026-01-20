@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
 const { body, validationResult } = require('express-validator');
+const { authenticate } = require('../middleware/auth');
+const { canAddDocument, canEditDocument, canDeleteDocument, canEdit, canDelete } = require('../middleware/rbac');
 const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
 
 /**
@@ -27,8 +29,34 @@ const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
  */
 router.get('/', async (req, res) => {
   try {
-    const students = await Student.findAll();
-    res.json({ success: true, data: students });
+    // Support pagination and filters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = (page - 1) * limit;
+    
+    const filters = {
+      school_id: req.query.school_id,
+      school_name: req.query.school_name,
+      school_recognition_no: req.query.school_recognition_no,
+      udise_no: req.query.udise_no,
+      school_identifier: req.query.school_identifier, // Searches across all school identifiers
+      status: req.query.status,
+      search: req.query.search // General search across student and school fields
+    };
+    
+    const students = await Student.findAll(filters, { limit, offset });
+    const total = await Student.count(filters);
+    
+    res.json({
+      success: true,
+      data: students,
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching students:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch students' });
@@ -191,12 +219,33 @@ router.post(
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticate, canEditDocument, async (req, res) => {
   try {
-    const student = await Student.update(req.params.id, req.body);
+    // First, get the current student to check status
+    const currentStudent = await Student.findById(req.params.id);
+    if (!currentStudent) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+
+    // Check if status allows editing
+    const currentStatus = currentStudent.status || 'draft';
+    if (!canEdit(currentStatus)) {
+      return res.status(403).json({
+        success: false,
+        error: `Cannot edit record with status "${currentStatus}". Only draft and rejected records can be edited.`
+      });
+    }
+
+    // Update the student
+    const student = await Student.update(req.params.id, {
+      ...req.body,
+      updated_by: req.user.id
+    });
+    
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
     }
+    
     res.json({ success: true, data: student });
   } catch (error) {
     console.error('Error updating student:', error);
@@ -222,12 +271,29 @@ router.put('/:id', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticate, canDeleteDocument, async (req, res) => {
   try {
-    const student = await Student.delete(req.params.id);
-    if (!student) {
+    // First, get the current student to check status
+    const currentStudent = await Student.findById(req.params.id);
+    if (!currentStudent) {
       return res.status(404).json({ success: false, error: 'Student not found' });
     }
+
+    // Check if status allows deletion
+    const currentStatus = currentStudent.status || 'draft';
+    if (!canDelete(currentStatus)) {
+      return res.status(403).json({
+        success: false,
+        error: `Cannot delete record with status "${currentStatus}". Only draft and rejected records can be deleted. Approved records cannot be deleted.`
+      });
+    }
+
+    // Delete the student
+    const deleted = await Student.delete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+    
     res.json({ success: true, message: 'Student deleted successfully' });
   } catch (error) {
     console.error('Error deleting student:', error);

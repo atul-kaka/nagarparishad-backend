@@ -25,9 +25,18 @@ function hasRole(user, requiredRoles) {
  * Check if user can edit based on document status
  */
 function canEdit(status) {
-  // Can edit: new, in_review, rejected
-  // Cannot edit: accepted
-  return ['new', 'in_review', 'rejected', 'draft'].includes(status);
+  // Can edit: draft, rejected
+  // Cannot edit: in_review, accepted, issued, archived, cancelled
+  return ['draft', 'rejected'].includes(status);
+}
+
+/**
+ * Check if user can delete based on document status
+ */
+function canDelete(status) {
+  // Can delete: draft, rejected
+  // Cannot delete: in_review, accepted, issued, archived, cancelled
+  return ['draft', 'rejected'].includes(status);
 }
 
 /**
@@ -80,7 +89,8 @@ function requireSuper(req, res, next) {
 }
 
 /**
- * Check if user can edit the document
+ * Check if user can edit the document based on status
+ * Only admin can edit, and only draft/rejected records can be edited
  */
 function canEditDocument(req, res, next) {
   if (!req.user) {
@@ -90,26 +100,42 @@ function canEditDocument(req, res, next) {
     });
   }
 
-  // Super and Admin can always edit (except accepted documents)
-  if (['admin', 'super'].includes(req.user.role)) {
-    // Check if document status allows editing
-    const status = req.body.status || req.query.status || req.params.status;
-    
-    if (status === 'accepted' && req.user.role !== 'super') {
-      return res.status(403).json({
-        success: false,
-        error: 'Cannot edit accepted documents. Only Super Admin can modify accepted documents.'
-      });
-    }
-    
-    return next();
+  // Only admin can edit
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Only Admin can edit student records'
+    });
   }
 
-  // Regular users cannot edit
-  return res.status(403).json({
-    success: false,
-    error: 'You do not have permission to edit documents'
-  });
+  // Status check will be done in route handler after fetching the record
+  // This middleware just ensures user is admin
+  next();
+}
+
+/**
+ * Check if user can delete the document based on status
+ * Only admin can delete, and only draft/rejected records can be deleted
+ */
+function canDeleteDocument(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  // Only admin can delete
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Only Admin can delete student records'
+    });
+  }
+
+  // Status check will be done in route handler after fetching the record
+  // This middleware just ensures user is admin
+  next();
 }
 
 /**
@@ -169,6 +195,7 @@ function canApproveReject(req, res, next) {
 
 /**
  * Check if user can add documents
+ * Only admin can create student records
  */
 function canAddDocument(req, res, next) {
   if (!req.user) {
@@ -178,10 +205,11 @@ function canAddDocument(req, res, next) {
     });
   }
 
-  if (!['admin', 'super'].includes(req.user.role)) {
+  // Only admin can create student records
+  if (req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      error: 'Only Admin and Super Admin can add documents'
+      error: 'Only Admin can create student records'
     });
   }
 
@@ -193,12 +221,14 @@ module.exports = {
   requireAdmin,
   requireSuper,
   canEditDocument,
+  canDeleteDocument,
   canViewDocument,
   canApproveReject,
   canAddDocument,
   filterByRole,
   hasRole,
   canEdit,
+  canDelete,
   canView
 };
 
