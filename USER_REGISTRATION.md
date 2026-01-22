@@ -162,3 +162,5 @@ After that, only Super Admin can register new users through the API.
 - Role must be one of: `user`, `admin`, `super`
 - All registrations are logged for audit purposes
 
+
+

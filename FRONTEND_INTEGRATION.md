@@ -315,3 +315,5 @@ fetch(`http://localhost:3000/api/certificates/${certificateId}/status`, {
 
 Your frontend can now send data in its native format, and the API will handle the conversion!
 
+
+

@@ -139,6 +139,25 @@ router.post(
       res.status(201).json({ success: true, data: school });
     } catch (error) {
       console.error('Error creating school:', error);
+      
+      // Handle validation errors (missing identifier)
+      if (error.validationErrors && error.validationErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: error.message || 'Validation failed',
+          validationErrors: error.validationErrors
+        });
+      }
+      
+      // Handle duplicate errors
+      if (error.duplicateErrors && error.duplicateErrors.length > 0) {
+        return res.status(409).json({
+          success: false,
+          error: 'Duplicate record found',
+          duplicates: error.duplicateErrors
+        });
+      }
+      
       res.status(500).json({ success: false, error: 'Failed to create school' });
     }
   }
@@ -177,6 +196,25 @@ router.put('/:id', async (req, res) => {
     res.json({ success: true, data: school });
   } catch (error) {
     console.error('Error updating school:', error);
+    
+    // Handle validation errors (missing identifier)
+    if (error.validationErrors && error.validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: error.message || 'Validation failed',
+        validationErrors: error.validationErrors
+      });
+    }
+    
+    // Handle duplicate errors
+    if (error.duplicateErrors && error.duplicateErrors.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Duplicate record found',
+        duplicates: error.duplicateErrors
+      });
+    }
+    
     res.status(500).json({ success: false, error: 'Failed to update school' });
   }
 });

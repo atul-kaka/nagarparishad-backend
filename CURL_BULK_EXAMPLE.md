@@ -96,3 +96,5 @@ curl -X POST http://localhost:3000/api/certificates/bulk \
 - If a student with the same student ID or Aadhar exists, it will be reused
 - All field names are automatically converted from camelCase to snake_case
 
+
+

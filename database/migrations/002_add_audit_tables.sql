@@ -72,3 +72,5 @@ CREATE INDEX IF NOT EXISTS idx_schools_status ON schools(status);
 CREATE INDEX IF NOT EXISTS idx_students_status ON students(status);
 CREATE INDEX IF NOT EXISTS idx_leaving_certificates_status ON leaving_certificates(status);
 
+
+

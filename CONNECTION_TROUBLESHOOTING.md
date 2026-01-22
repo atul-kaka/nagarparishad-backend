@@ -240,3 +240,5 @@ curl https://api.kaamlo.com/health
 3. **Test with IP instead of domain:** `curl https://YOUR_IP/health`
 4. **Check if you're behind a firewall/proxy**
 
+
+

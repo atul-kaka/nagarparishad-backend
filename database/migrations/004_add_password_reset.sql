@@ -13,3 +13,5 @@ CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_token) WHERE res
 COMMENT ON COLUMN users.reset_token IS 'Password reset token';
 COMMENT ON COLUMN users.reset_token_expires_at IS 'When the reset token expires';
 
+
+

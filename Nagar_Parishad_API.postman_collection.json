@@ -1,0 +1,1283 @@
+{
+	"info": {
+		"_postman_id": "nagar-parishad-api-001",
+		"name": "Nagar Parishad API",
+		"description": "Complete API collection for Nagar Parishad School Leaving Certificate Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "nagar-parishad"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.environment.set(\"auth_token\", jsonData.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.environment.set(\"auth_token\", jsonData.data.token);",
+									"        pm.environment.set(\"user_id\", jsonData.data.user.id);",
+									"        pm.environment.set(\"user_role\", jsonData.data.user.role);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "OTP Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mobile_number\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/otp/request",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "otp", "request"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "OTP Verify",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.environment.set(\"auth_token\", jsonData.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mobile_number\": \"9876543210\",\n  \"otp_code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/otp/verify",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "otp", "verify"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "me"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout All",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout/all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout", "all"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Password Reset Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/password/reset/request",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "password", "reset", "request"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Password Reset Verify",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"reset_token_here\",\n  \"new_password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/password/reset/verify",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "password", "reset", "verify"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Password Change",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"current_password\": \"oldpassword\",\n  \"new_password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/password/change",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "password", "change"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Token Refresh",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.environment.set(\"auth_token\", jsonData.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/token/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "token", "refresh"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Schools",
+			"item": [
+				{
+					"name": "Get All Schools",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/schools",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schools"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get School by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/schools/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schools", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create School",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"स्व. जतिरामजी बर्वे नगर परिषद प्राथमिक शाळा, रामटेक\",\n  \"address\": \"रामटेक\",\n  \"taluka\": \"रामटेक\",\n  \"district\": \"नागपूर\",\n  \"state\": \"महाराष्ट्र\",\n  \"phone_no\": \"07112234567\",\n  \"email\": \"school@example.com\",\n  \"general_register_no\": \"GR001\",\n  \"school_recognition_no\": \"4260/37\",\n  \"udise_no\": \"27090100102\",\n  \"affiliation_no\": \"AFF-2024-124\",\n  \"board\": \"Maharashtra State\",\n  \"medium\": \"Marathi\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/schools",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schools"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update School",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated School Name\",\n  \"district\": \"Updated District\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/schools/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schools", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete School",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/schools/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "schools", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Students",
+			"item": [
+				{
+					"name": "Get All Students",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/students?page=1&limit=20&status=active&school_id=1&student_name=प्रिया&aadhaar=234523452345&district=नागपूर&sort_by=leaving_date&sort_order=DESC",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Records per page"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"description": "Filter by status (draft, in_review, rejected, active)"
+								},
+								{
+									"key": "school_id",
+									"value": "1",
+									"description": "Filter by school ID"
+								},
+								{
+									"key": "school_name",
+									"value": "",
+									"description": "Filter by school name (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "school_recognition_no",
+									"value": "",
+									"description": "Filter by school recognition number",
+									"disabled": true
+								},
+								{
+									"key": "udise_no",
+									"value": "",
+									"description": "Filter by UDISE number",
+									"disabled": true
+								},
+								{
+									"key": "school_identifier",
+									"value": "",
+									"description": "Search by any school identifier",
+									"disabled": true
+								},
+								{
+									"key": "district",
+									"value": "नागपूर",
+									"description": "Filter by district (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "taluka",
+									"value": "",
+									"description": "Filter by taluka (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "student_id",
+									"value": "",
+									"description": "Filter by student ID (exact match)",
+									"disabled": true
+								},
+								{
+									"key": "uid_aadhar_no",
+									"value": "",
+									"description": "Filter by Aadhaar number (exact match)",
+									"disabled": true
+								},
+								{
+									"key": "aadhaar",
+									"value": "234523452345",
+									"description": "Filter by Aadhaar number (alias for uid_aadhar_no)",
+									"disabled": true
+								},
+								{
+									"key": "aadhar",
+									"value": "",
+									"description": "Filter by Aadhaar number (alias for uid_aadhar_no)",
+									"disabled": true
+								},
+								{
+									"key": "full_name",
+									"value": "",
+									"description": "Filter by student full name (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "student_name",
+									"value": "प्रिया",
+									"description": "Filter by student name (alias for full_name)",
+									"disabled": true
+								},
+								{
+									"key": "father_name",
+									"value": "",
+									"description": "Filter by father's name (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "date_of_birth",
+									"value": "",
+									"description": "Filter by exact date of birth (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "date_of_birth_from",
+									"value": "",
+									"description": "Filter by date of birth from (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "date_of_birth_to",
+									"value": "",
+									"description": "Filter by date of birth to (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "leaving_date",
+									"value": "",
+									"description": "Filter by exact leaving date (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "leaving_date_from",
+									"value": "",
+									"description": "Filter by leaving date from (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "leaving_date_to",
+									"value": "",
+									"description": "Filter by leaving date to (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "certificate_year",
+									"value": "",
+									"description": "Filter by certificate year",
+									"disabled": true
+								},
+								{
+									"key": "serial_no",
+									"value": "",
+									"description": "Filter by serial number",
+									"disabled": true
+								},
+								{
+									"key": "leaving_class",
+									"value": "",
+									"description": "Filter by leaving class",
+									"disabled": true
+								},
+								{
+									"key": "caste",
+									"value": "",
+									"description": "Filter by caste (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "religion",
+									"value": "",
+									"description": "Filter by religion (partial match)",
+									"disabled": true
+								},
+								{
+									"key": "created_by",
+									"value": "",
+									"description": "Filter by creator user ID",
+									"disabled": true
+								},
+								{
+									"key": "created_at_from",
+									"value": "",
+									"description": "Filter by creation date from (ISO format)",
+									"disabled": true
+								},
+								{
+									"key": "created_at_to",
+									"value": "",
+									"description": "Filter by creation date to (ISO format)",
+									"disabled": true
+								},
+								{
+									"key": "updated_at_from",
+									"value": "",
+									"description": "Filter by update date from (ISO format)",
+									"disabled": true
+								},
+								{
+									"key": "updated_at_to",
+									"value": "",
+									"description": "Filter by update date to (ISO format)",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "General search in student name, student_id, Aadhaar, serial_no, school name, etc.",
+									"disabled": true
+								},
+								{
+									"key": "date_of_leaving",
+									"value": "",
+									"description": "Filter by exact leaving date (alias for leaving_date)",
+									"disabled": true
+								},
+								{
+									"key": "date_of_leaving_from",
+									"value": "",
+									"description": "Filter by leaving date from (alias for leaving_date_from)",
+									"disabled": true
+								},
+								{
+									"key": "date_of_leaving_to",
+									"value": "",
+									"description": "Filter by leaving date to (alias for leaving_date_to)",
+									"disabled": true
+								},
+								{
+									"key": "sort_by",
+									"value": "created_at",
+									"description": "Field to sort by (created_at, updated_at, full_name, student_id, date_of_birth, leaving_date, date_of_leaving, certificate_year, status, serial_no)"
+								},
+								{
+									"key": "sort_order",
+									"value": "DESC",
+									"description": "Sort order (ASC or DESC)"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Students (POST)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"page\": 1,\n  \"limit\": 20,\n  \"sort_by\": \"leaving_date\",\n  \"sort_order\": \"DESC\",\n  \"filters\": {\n    \"status\": \"active\",\n    \"school_id\": 1,\n    \"student_name\": \"प्रिया\",\n    \"aadhaar\": \"234523452345\",\n    \"district\": \"नागपूर\",\n    \"date_of_birth_from\": \"2010-01-01\",\n    \"date_of_birth_to\": \"2012-12-31\",\n    \"date_of_leaving_from\": \"2024-01-01\",\n    \"date_of_leaving_to\": \"2024-12-31\",\n    \"caste\": \"मराठा\",\n    \"religion\": \"हिंदू\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/students/search",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "search"]
+						},
+						"description": "Advanced search endpoint for complex filtering with many optional parameters. Use this when you have many filter criteria that would make the GET query string too long."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/students/stats",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "stats"]
+						},
+						"description": "Returns total student records, updated records, and status modified records in a single API call. Metrics: total_records (all students), updated_records (students with updated_at != created_at or updated_by is not null), status_modified_records (students with status != 'draft')."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/students/stats",
+									"host": ["{{base_url}}"],
+									"path": ["api", "students", "stats"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"success\": true,\n    \"data\": {\n        \"total_records\": 1500,\n        \"updated_records\": 1200,\n        \"status_modified_records\": 800\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Student by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/students/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Student",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/students/search/STU-0001",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "search", "STU-0001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"राजेश कुमार\",\n  \"date_of_birth\": \"2010-05-15\",\n  \"father_name\": \"रमेश कुमार\",\n  \"student_id\": \"STU-001\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/students",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Student Consolidated",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"school_recognition_no\": \"4260/37\",\n  \"serialNumber\": \"102\",\n  \"studentId\": \"STU-0002\",\n  \"uidAadhaarNumber\": \"234523452345\",\n  \"studentFullName\": \"प्रिया सुनील देशमुख\",\n  \"fatherName\": \"सुनील देशमुख\",\n  \"surname\": \"देशमुख\",\n  \"motherName\": \"कविता देशमुख\",\n  \"nationality\": \"भारतीय\",\n  \"motherTongue\": \"मराठी\",\n  \"religion\": \"हिंदू\",\n  \"caste\": \"मराठा\",\n  \"subCaste\": \"देशमुख\",\n  \"placeOfBirth\": \"रामटेक\",\n  \"taluka\": \"रामटेक\",\n  \"district\": \"नागपूर\",\n  \"state\": \"महाराष्ट्र\",\n  \"country\": \"भारत\",\n  \"dateOfBirth\": \"2011-08-20\",\n  \"dateOfBirthInWords\": \"वीस ऑगस्ट दोन हजार अकरा\",\n  \"previousSchool\": \"स्व. जतिरामजी बर्वे नगर परिषद प्राथमिक शाळा, रामटेक\",\n  \"previousClass\": \"पाचवी\",\n  \"admissionDate\": \"2018-06-10\",\n  \"admissionClass\": \"सहावी\",\n  \"academicProgress\": \"उत्तम\",\n  \"conduct\": \"उत्तम\",\n  \"leavingDate\": \"2024-03-25\",\n  \"leavingClass\": \"आठवी\",\n  \"classStudyingDetails\": \"आठवीत शिकत होती\",\n  \"reasonForLeaving\": \"शैक्षणिक कारणास्तव\",\n  \"remarks\": \"अभ्यासू व मेहनती विद्यार्थी\",\n  \"generalRegisterReference\": \"5002\",\n  \"certificateDate\": \"2024-04-01\",\n  \"certificateMonth\": \"एप्रिल\",\n  \"certificateYear\": \"२०२४\",\n  \"classTeacherSignature\": \"वर्गशिक्षक\",\n  \"clerkSignature\": \"लेखनिक\",\n  \"headmasterSignature\": \"मुख्याध्यापक\",\n  \"status\": \"draft\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/students/consolidated",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "consolidated"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Student",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"data\": {\n    \"serialNumber\": \"112\",\n    \"studentFullName\": \"Updated Name\",\n    \"fatherName\": \"Updated Father\",\n    \"dateOfBirth\": \"2011-08-20\",\n    \"status\": \"draft\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/students/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Student Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"in_review\",\n  \"reason\": \"Submitted for review\",\n  \"comment\": \"Updated student information based on verification\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/students/1/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "1", "status"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Status Transitions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/students/1/status/transitions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "1", "status", "transitions"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Student",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/students/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Certificates",
+			"item": [
+				{
+					"name": "Get All Certificates",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/certificates?page=1&limit=20&status=active",
+							"host": ["{{base_url}}"],
+							"path": ["api", "certificates"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "status",
+									"value": "active"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Certificate by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/certificates/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "certificates", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Certificate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"schoolId\": 1,\n  \"studentId\": 1,\n  \"serialNumber\": \"101\",\n  \"leavingDate\": \"2024-03-25\",\n  \"leavingClass\": \"आठवी\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/certificates",
+							"host": ["{{base_url}}"],
+							"path": ["api", "certificates"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Create Certificates",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"certificates\": [\n    {\n      \"schoolId\": 1,\n      \"studentId\": 1,\n      \"serialNumber\": \"101\",\n      \"leavingDate\": \"2024-03-25\",\n      \"leavingClass\": \"आठवी\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/certificates/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["api", "certificates", "bulk"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Certificate Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"in_review\",\n  \"reason\": \"Submitted for review\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/certificates/1/status",
+							"host": ["{{base_url}}"],
+							"path": ["api", "certificates", "1", "status"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Certificate",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/certificates/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "certificates", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Audit",
+			"item": [
+				{
+					"name": "Get Audit Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/audit?page=1&limit=20&table_name=students",
+							"host": ["{{base_url}}"],
+							"path": ["api", "audit"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "table_name",
+									"value": "students"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Audit Logs for Record",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/audit/students/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "audit", "students", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newuser\",\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"full_name\": \"New User\",\n  \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "register"]
+						},
+						"description": "Create a new user. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users"]
+						},
+						"description": "Get all users. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "1"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get user by ID. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newuser\",\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "1"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Update user information. Requires Admin or Super Admin role. You can update username, email, password, and role. Note: Only Super Admin can update Super Admin users."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "1"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Delete a user permanently. Requires Admin or Super Admin role. Note: You cannot delete your own account. Only Super Admin can delete Super Admin users."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "API Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": ["{{base_url}}"],
+							"path": [""]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

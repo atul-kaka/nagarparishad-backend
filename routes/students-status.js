@@ -119,11 +119,16 @@ router.patch(
         }
       }
 
-      // Update status
+      // Update status and optional comment
       const updateData = {
         status,
         updated_by: userId
       };
+      
+      // Store comment if provided
+      if (req.body.comment) {
+        updateData.comment = req.body.comment;
+      }
 
       const updatedStudent = await Student.update(studentId, updateData);
 

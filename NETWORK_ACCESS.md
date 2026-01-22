@@ -367,3 +367,5 @@ http://YOUR_IP_ADDRESS:3000/api/schools
 
 Your server should now be accessible from any device on your local network!
 
+
+

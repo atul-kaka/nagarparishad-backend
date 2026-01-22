@@ -167,3 +167,5 @@ curl https://api.kaamlo.com/api/schools
 
 Your API is now accessible via the domain name instead of the IP address!
 
+
+

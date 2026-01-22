@@ -85,3 +85,5 @@ COMMENT ON COLUMN audit_logs.action_type IS 'Type of action: view, add, update, 
 COMMENT ON COLUMN record_visits.table_name IS 'Table name of the visited record';
 COMMENT ON COLUMN record_visits.mobile_number IS 'Mobile number of the user who visited';
 
+
+

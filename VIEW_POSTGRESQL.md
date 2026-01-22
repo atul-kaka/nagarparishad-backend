@@ -346,3 +346,5 @@ JOIN students st ON lc.student_id = st.id;
 
 For more advanced queries and examples, see `VIEW_DATA.md`
 
+
+

@@ -206,3 +206,5 @@ nginx.exe -s reload
 
 The key is to **complete the certificate generation** and make sure you choose **"PEM encoded files"** for storage!
 
+
+

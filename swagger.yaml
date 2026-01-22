@@ -99,6 +99,7 @@ paths:
     
     post:
       summary: Create a new school
+      description: At least one identifier (school_recognition_no, general_register_no, or affiliation_no) must be provided. Each identifier field must be unique if provided.
       tags: [Schools]
       requestBody:
         required: true
@@ -119,6 +120,18 @@ paths:
                 state:
                   type: string
                   example: महाराष्ट्र
+                school_recognition_no:
+                  type: string
+                  description: Must be unique if provided. At least one identifier field required.
+                  example: "4260/37"
+                general_register_no:
+                  type: string
+                  description: Must be unique if provided. At least one identifier field required.
+                  example: GR001
+                affiliation_no:
+                  type: string
+                  description: Must be unique if provided. At least one identifier field required.
+                  example: AFF001
                 created_by:
                   type: integer
                   description: User ID who created this record
@@ -135,7 +148,51 @@ paths:
                   data:
                     $ref: '#/components/schemas/School'
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error - missing identifier or other validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: At least one identifier is required
+                  validationErrors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                        message:
+                          type: string
+        '409':
+          description: Duplicate record found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Duplicate record found
+                  duplicates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                        value:
+                          type: string
+                        message:
+                          type: string
 
   /api/schools/{id}:
     get:
@@ -705,7 +762,205 @@ paths:
           name: search
           schema:
             type: string
-          description: General search in student name, student_id, serial_no, school name, recognition_no, or udise_no
+          description: General search in student name, student_id, Aadhaar number, serial_no, school name, recognition_no, or udise_no
+          example: "234523452345"
+        - in: query
+          name: district
+          schema:
+            type: string
+          description: Filter by district (partial match)
+          example: "नागपूर"
+        - in: query
+          name: taluka
+          schema:
+            type: string
+          description: Filter by taluka (partial match)
+          example: "रामटेक"
+        - in: query
+          name: student_id
+          schema:
+            type: string
+          description: Filter by student ID (exact match)
+          example: "STU-0002"
+        - in: query
+          name: uid_aadhar_no
+          schema:
+            type: string
+          description: Filter by Aadhaar number (exact match). Aliases: aadhaar, aadhar
+          example: "234523452345"
+        - in: query
+          name: aadhaar
+          schema:
+            type: string
+          description: Filter by Aadhaar number (exact match). Alias for uid_aadhar_no
+          example: "234523452345"
+        - in: query
+          name: aadhar
+          schema:
+            type: string
+          description: Filter by Aadhaar number (exact match). Alias for uid_aadhar_no
+          example: "234523452345"
+        - in: query
+          name: full_name
+          schema:
+            type: string
+          description: Filter by student full name (partial match). Alias: student_name
+          example: "प्रिया"
+        - in: query
+          name: student_name
+          schema:
+            type: string
+          description: Filter by student name (partial match). Alias for full_name
+          example: "प्रिया"
+        - in: query
+          name: father_name
+          schema:
+            type: string
+          description: Filter by father's name (partial match)
+          example: "सुनील"
+        - in: query
+          name: date_of_birth
+          schema:
+            type: string
+            format: date
+          description: Filter by exact date of birth
+          example: "2011-08-20"
+        - in: query
+          name: date_of_birth_from
+          schema:
+            type: string
+            format: date
+          description: Filter by date of birth from (inclusive)
+          example: "2010-01-01"
+        - in: query
+          name: date_of_birth_to
+          schema:
+            type: string
+            format: date
+          description: Filter by date of birth to (inclusive)
+          example: "2012-12-31"
+        - in: query
+          name: leaving_date
+          schema:
+            type: string
+            format: date
+          description: Filter by exact leaving date
+          example: "2024-03-25"
+        - in: query
+          name: leaving_date_from
+          schema:
+            type: string
+            format: date
+          description: Filter by leaving date from (inclusive)
+          example: "2024-01-01"
+        - in: query
+          name: leaving_date_to
+          schema:
+            type: string
+            format: date
+          description: Filter by leaving date to (inclusive)
+          example: "2024-12-31"
+        - in: query
+          name: certificate_year
+          schema:
+            type: integer
+          description: Filter by certificate year
+          example: 2024
+        - in: query
+          name: serial_no
+          schema:
+            type: string
+          description: Filter by serial number (exact match)
+          example: "102"
+        - in: query
+          name: leaving_class
+          schema:
+            type: string
+          description: Filter by leaving class (partial match)
+          example: "आठवी"
+        - in: query
+          name: caste
+          schema:
+            type: string
+          description: Filter by caste (partial match)
+          example: "मराठा"
+        - in: query
+          name: religion
+          schema:
+            type: string
+          description: Filter by religion (partial match)
+          example: "हिंदू"
+        - in: query
+          name: created_by
+          schema:
+            type: integer
+          description: Filter by creator user ID
+          example: 1
+        - in: query
+          name: created_at_from
+          schema:
+            type: string
+            format: date-time
+          description: Filter by creation date from (inclusive)
+          example: "2024-01-01T00:00:00Z"
+        - in: query
+          name: created_at_to
+          schema:
+            type: string
+            format: date-time
+          description: Filter by creation date to (inclusive)
+          example: "2024-12-31T23:59:59Z"
+        - in: query
+          name: updated_at_from
+          schema:
+            type: string
+            format: date-time
+          description: Filter by update date from (inclusive)
+          example: "2024-01-01T00:00:00Z"
+        - in: query
+          name: updated_at_to
+          schema:
+            type: string
+            format: date-time
+          description: Filter by update date to (inclusive)
+          example: "2024-12-31T23:59:59Z"
+        - in: query
+          name: date_of_leaving
+          schema:
+            type: string
+            format: date
+          description: Filter by exact leaving date (alias for leaving_date)
+          example: "2024-03-25"
+        - in: query
+          name: date_of_leaving_from
+          schema:
+            type: string
+            format: date
+          description: Filter by leaving date from (alias for leaving_date_from)
+          example: "2024-01-01"
+        - in: query
+          name: date_of_leaving_to
+          schema:
+            type: string
+            format: date
+          description: Filter by leaving date to (alias for leaving_date_to)
+          example: "2024-12-31"
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+            enum: [created_at, updated_at, full_name, student_id, date_of_birth, leaving_date, date_of_leaving, certificate_year, status, serial_no]
+            default: created_at
+          description: Field to sort by
+          example: "leaving_date"
+        - in: query
+          name: sort_order
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+          description: Sort order (ASC or DESC)
+          example: "DESC"
       responses:
         '200':
           description: List of students with pagination
@@ -731,6 +986,205 @@ paths:
                         type: integer
                       total_pages:
                         type: integer
+
+  /api/students/search:
+    post:
+      summary: Advanced search for students with multiple optional filters
+      description: Use POST for complex filtering with many optional parameters. All filters are optional. This endpoint is useful when you have many filter criteria that would make the GET query string too long.
+      tags: [Students]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  default: 1
+                  minimum: 1
+                  description: Page number
+                limit:
+                  type: integer
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  description: Number of records per page
+                filters:
+                  type: object
+                  description: All filter fields are optional
+                  properties:
+                    school_id:
+                      type: integer
+                      description: Filter by school ID
+                    school_name:
+                      type: string
+                      description: Filter by school name (partial match)
+                    school_recognition_no:
+                      type: string
+                      description: Filter by school recognition number (exact match)
+                    udise_no:
+                      type: string
+                      description: Filter by UDISE number (exact match)
+                    school_identifier:
+                      type: string
+                      description: Search by any school identifier
+                    district:
+                      type: string
+                      description: Filter by district (partial match)
+                    taluka:
+                      type: string
+                      description: Filter by taluka (partial match)
+                    student_id:
+                      type: string
+                      description: Filter by student ID (exact match)
+                    uid_aadhar_no:
+                      type: string
+                      description: Filter by Aadhaar number (exact match). Aliases: aadhaar, aadhar
+                    aadhaar:
+                      type: string
+                      description: Filter by Aadhaar number (exact match). Alias for uid_aadhar_no
+                    aadhar:
+                      type: string
+                      description: Filter by Aadhaar number (exact match). Alias for uid_aadhar_no
+                    full_name:
+                      type: string
+                      description: Filter by student full name (partial match). Alias: student_name
+                    student_name:
+                      type: string
+                      description: Filter by student name (partial match). Alias for full_name
+                    father_name:
+                      type: string
+                      description: Filter by father's name (partial match)
+                    status:
+                      type: string
+                      enum: [draft, in_review, rejected, active]
+                      description: Filter by status
+                    date_of_birth:
+                      type: string
+                      format: date
+                      description: Filter by exact date of birth
+                    date_of_birth_from:
+                      type: string
+                      format: date
+                      description: Filter by date of birth from (inclusive)
+                    date_of_birth_to:
+                      type: string
+                      format: date
+                      description: Filter by date of birth to (inclusive)
+                    leaving_date:
+                      type: string
+                      format: date
+                      description: Filter by exact leaving date
+                    leaving_date_from:
+                      type: string
+                      format: date
+                      description: Filter by leaving date from (inclusive)
+                    leaving_date_to:
+                      type: string
+                      format: date
+                      description: Filter by leaving date to (inclusive)
+                    date_of_leaving:
+                      type: string
+                      format: date
+                      description: Filter by exact leaving date (alias for leaving_date)
+                    date_of_leaving_from:
+                      type: string
+                      format: date
+                      description: Filter by leaving date from (alias for leaving_date_from)
+                    date_of_leaving_to:
+                      type: string
+                      format: date
+                      description: Filter by leaving date to (alias for leaving_date_to)
+                    certificate_year:
+                      type: integer
+                      description: Filter by certificate year
+                    serial_no:
+                      type: string
+                      description: Filter by serial number (exact match)
+                    leaving_class:
+                      type: string
+                      description: Filter by leaving class (partial match)
+                    caste:
+                      type: string
+                      description: Filter by caste (partial match)
+                    religion:
+                      type: string
+                      description: Filter by religion (partial match)
+                    created_by:
+                      type: integer
+                      description: Filter by creator user ID
+                    created_at_from:
+                      type: string
+                      format: date-time
+                      description: Filter by creation date from (inclusive)
+                    created_at_to:
+                      type: string
+                      format: date-time
+                      description: Filter by creation date to (inclusive)
+                    updated_at_from:
+                      type: string
+                      format: date-time
+                      description: Filter by update date from (inclusive)
+                    updated_at_to:
+                      type: string
+                      format: date-time
+                      description: Filter by update date to (inclusive)
+                    search:
+                      type: string
+                      description: General search across student and school fields (includes Aadhaar number)
+                sort_by:
+                  type: string
+                  enum: [created_at, updated_at, full_name, student_id, date_of_birth, leaving_date, date_of_leaving, certificate_year, status, serial_no]
+                  default: created_at
+                  description: Field to sort by
+                sort_order:
+                  type: string
+                  enum: [ASC, DESC]
+                  default: DESC
+                  description: Sort order (ASC or DESC)
+            example:
+              page: 1
+              limit: 20
+              sort_by: "leaving_date"
+              sort_order: "DESC"
+              filters:
+                status: active
+                school_id: 1
+                district: "नागपूर"
+                date_of_birth_from: "2010-01-01"
+                date_of_birth_to: "2012-12-31"
+      responses:
+        '200':
+          description: List of students matching the filters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      total_pages:
+                        type: integer
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     
     post:
       summary: Create a new student (Admin only)
@@ -962,6 +1416,48 @@ paths:
                         description: Whether this is a final state (cannot be changed)
         '404':
           description: Student not found
+
+  /api/students/stats:
+    get:
+      summary: Get student statistics
+      description: Returns total student records, updated records, and status modified records in a single API call
+      tags: [Students]
+      responses:
+        '200':
+          description: Student statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      total_records:
+                        type: integer
+                        description: Total number of student records
+                        example: 1500
+                      updated_records:
+                        type: integer
+                        description: Number of student records that have been updated (updated_at != created_at or updated_by is not null)
+                        example: 1200
+                      status_modified_records:
+                        type: integer
+                        description: Number of student records with status changed from draft (status != 'draft')
+                        example: 800
+                    example:
+                      total_records: 1500
+                      updated_records: 1200
+                      status_modified_records: 800
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/students/consolidated:
     post:
@@ -1928,6 +2424,7 @@ components:
     School:
       type: object
       required: [name, district]
+      description: At least one identifier (school_recognition_no, general_register_no, or affiliation_no) must be provided
       properties:
         id:
           type: integer
@@ -1957,12 +2454,17 @@ components:
         general_register_no:
           type: string
           example: GR001
+          description: Must be unique if provided. At least one identifier (school_recognition_no, general_register_no, or affiliation_no) required.
         school_recognition_no:
           type: string
+          description: Must be unique if provided. At least one identifier (school_recognition_no, general_register_no, or affiliation_no) required.
+          example: "4260/37"
         udise_no:
           type: string
         affiliation_no:
           type: string
+          description: Must be unique if provided. At least one identifier (school_recognition_no, general_register_no, or affiliation_no) required.
+          example: AFF001
         board:
           type: string
           default: Maharashtra State
@@ -2119,6 +2621,10 @@ components:
         headmaster_signature:
           type: string
           example: "मुख्याध्यापक"
+        medium:
+          type: string
+          example: "Marathi"
+          description: Medium of instruction (Marathi, Hindi, English, etc.)
         status:
           type: string
           enum: [new, in_review, rejected, accepted, draft, issued, archived, cancelled]

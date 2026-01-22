@@ -123,30 +123,110 @@ router.post(
         updated_by: toNull(data.updated_by || (typeof data.updatedBy === 'string' ? null : data.updatedBy))
       };
       
-      // Check if student already exists
-      let student = null;
+      // Check if student already exists by student_id or uid_aadhar_no
+      let existingStudent = null;
+      let matchBy = null;
+      
       if (studentData.student_id) {
-        student = await Student.findByStudentId(studentData.student_id);
-      }
-      if (!student && studentData.uid_aadhar_no) {
-        student = await Student.findByAadhar(studentData.uid_aadhar_no);
+        existingStudent = await Student.findByStudentId(studentData.student_id);
+        if (existingStudent) {
+          matchBy = 'student_id';
+          console.log(`[DEBUG] Found existing student by student_id: ${JSON.stringify(existingStudent, null, 2)}`);
+        }
       }
       
-      if (student) {
-        // Check if status allows editing
-        const currentStatus = student.status || 'draft';
+      if (!existingStudent && studentData.uid_aadhar_no) {
+        existingStudent = await Student.findByAadhar(studentData.uid_aadhar_no);
+        if (existingStudent) {
+          matchBy = 'uid_aadhar_no';
+          console.log(`[DEBUG] Found existing student by uid_aadhar_no: ${JSON.stringify(existingStudent, null, 2)}`);
+        } else {
+          console.log(`[DEBUG] No student found with uid_aadhar_no: ${studentData.uid_aadhar_no}`);
+        }
+      }
+      
+      // Additional debug: Check all students with this Aadhar (if provided)
+      if (studentData.uid_aadhar_no && !existingStudent) {
+        const pool = require('../config/database');
+        const debugQuery = await pool.query(
+          'SELECT id, student_id, uid_aadhar_no, full_name, status FROM students WHERE uid_aadhar_no = $1',
+          [studentData.uid_aadhar_no]
+        );
+        console.log(`[DEBUG] Direct query for uid_aadhar_no "${studentData.uid_aadhar_no}": Found ${debugQuery.rows.length} record(s)`, debugQuery.rows);
+      }
+      
+      if (existingStudent) {
+        // Check if this is a duplicate (different student_id but same aadhar, or vice versa)
+        const isDifferentStudentId = studentData.student_id && 
+                                     existingStudent.student_id && 
+                                     existingStudent.student_id !== studentData.student_id;
+        const isDifferentAadhar = studentData.uid_aadhar_no && 
+                                  existingStudent.uid_aadhar_no && 
+                                  existingStudent.uid_aadhar_no !== studentData.uid_aadhar_no;
+        
+        // If trying to create a new record but identifier already exists
+        if (isDifferentStudentId || isDifferentAadhar) {
+          // Check if trying to update student_id for same person
+          if (isDifferentStudentId && !isDifferentAadhar && matchBy === 'uid_aadhar_no') {
+            // Same person, different student_id - need to update existing record
+            const currentStatus = existingStudent.status || 'draft';
+            if (!canEdit(currentStatus)) {
+              return res.status(409).json({
+                success: false,
+                error: `Cannot update student_id for record with status "${currentStatus}". Only draft and rejected records can be edited.`,
+                existingRecord: {
+                  id: existingStudent.id,
+                  student_id: existingStudent.student_id,
+                  uid_aadhar_no: existingStudent.uid_aadhar_no,
+                  full_name: existingStudent.full_name,
+                  status: existingStudent.status
+                },
+                action: 'update',
+                hint: `To change student_id from "${existingStudent.student_id}" to "${studentData.student_id}", you need to: 1) Change status to "rejected" (requires Super Admin), 2) Then update the record. Or contact a Super Admin to update student_id directly.`,
+                superAdminAction: `PATCH /api/students/${existingStudent.id}/status with {"status": "rejected", "reason": "Updating student_id"}`
+              });
+            }
+            // Same person, editable status - allow update with new student_id
+            // Continue to update logic below
+          } else {
+            // True duplicate - different person trying to use same identifier
+            return res.status(409).json({
+              success: false,
+              error: `A student record already exists with this ${matchBy === 'student_id' ? 'Student ID' : 'Aadhar Number'}.`,
+              existingRecord: {
+                id: existingStudent.id,
+                student_id: existingStudent.student_id,
+                uid_aadhar_no: existingStudent.uid_aadhar_no,
+                full_name: existingStudent.full_name,
+                status: existingStudent.status
+              },
+              hint: `Student ID and Aadhar Number must be unique. Use a different ${matchBy === 'student_id' ? 'student ID' : 'Aadhar number'} or update the existing record if needed.`
+            });
+          }
+        }
+        
+        // Same record - check if status allows editing
+        const currentStatus = existingStudent.status || 'draft';
         if (!canEdit(currentStatus)) {
           return res.status(403).json({
             success: false,
-            error: `Cannot edit record with status "${currentStatus}". Only draft and rejected records can be edited.`
+            error: `Cannot update record with status "${currentStatus}". Only draft and rejected records can be edited.`,
+            existingRecord: {
+              id: existingStudent.id,
+              student_id: existingStudent.student_id,
+              uid_aadhar_no: existingStudent.uid_aadhar_no,
+              status: existingStudent.status,
+              full_name: existingStudent.full_name
+            },
+            hint: 'To modify this record, first change its status to "draft" or "rejected" using the status update endpoint (requires Super Admin for accepted records).'
           });
         }
         
-        // Update existing student
+        // Update existing student (same identifiers, editable status)
         studentData.updated_by = req.user.id;
-        student = await Student.update(student.id, studentData);
+        student = await Student.update(existingStudent.id, studentData);
       } else {
-        // Create new student
+        // Create new student (no duplicate found)
         studentData.created_by = req.user.id;
         student = await Student.create(studentData);
       }

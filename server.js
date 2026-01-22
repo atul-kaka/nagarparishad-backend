@@ -10,6 +10,7 @@ const app = express();
 // CORS configuration - allow your domain and localhost for development
 const allowedOrigins = [
   'https://api.kaamlo.com',
+  'http://api.kaamlo.com',
   'https://kaamlo.com',
   'http://localhost:3000',
   'http://localhost:3001'
@@ -36,6 +37,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Encryption middleware - decrypts requests and encrypts responses
+const { encryptionMiddleware } = require('./middleware/encryption');
+app.use(encryptionMiddleware);
+
+// Global Authentication - require login for all routes except public endpoints
+const globalAuth = require('./middleware/globalAuth');
+app.use(globalAuth);
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -155,6 +164,16 @@ const HOST = process.env.HOST || '0.0.0.0'; // Listen on all network interfaces
 app.listen(PORT, HOST, () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Display encryption status
+  if (process.env.ENABLE_ENCRYPTION === 'true') {
+    console.log('🔐 Encryption: ENABLED (All requests must be encrypted)');
+  } else {
+    console.log('🔓 Encryption: DISABLED (Use X-Encrypt-Request/Response headers or set ENABLE_ENCRYPTION=true)');
+  }
+  
+  // Display authentication status
+  console.log('🔒 Authentication: REQUIRED (All routes protected except public endpoints)');
   
   // Display network information
   const os = require('os');

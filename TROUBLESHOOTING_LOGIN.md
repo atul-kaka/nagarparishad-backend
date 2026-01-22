@@ -295,3 +295,5 @@ console.log('Login attempt:', { username, userFound: !!user });
 
 This will help identify where the login is failing.
 
+
+

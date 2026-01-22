@@ -75,7 +75,7 @@ class Student {
         sch.udise_no,
         sch.affiliation_no,
         sch.board as school_board,
-        sch.medium as school_medium
+        sch.medium as medium
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE s.id = $1
@@ -126,8 +126,9 @@ class Student {
     return result.rows[0];
   }
 
-  static async findAll(filters = {}, pagination = {}) {
+  static async findAll(filters = {}, pagination = {}, sorting = {}) {
     const { limit, offset } = pagination;
+    const { sort_by = 'created_at', sort_order = 'DESC' } = sorting;
     let query = `
       SELECT 
         s.*,
@@ -136,7 +137,8 @@ class Student {
         sch.udise_no as school_udise_no,
         sch.email as school_email,
         sch.phone_no as school_phone_no,
-        sch.address as school_address
+        sch.address as school_address,
+        sch.medium as medium
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE 1=1
@@ -190,11 +192,162 @@ class Student {
       paramCount++;
     }
 
+    // Filter by student_id
+    if (filters.student_id) {
+      query += ` AND s.student_id = $${paramCount}`;
+      values.push(filters.student_id);
+      paramCount++;
+    }
+
+    // Filter by uid_aadhar_no
+    if (filters.uid_aadhar_no) {
+      query += ` AND s.uid_aadhar_no = $${paramCount}`;
+      values.push(filters.uid_aadhar_no);
+      paramCount++;
+    }
+
+    // Filter by full_name (partial match)
+    if (filters.full_name) {
+      query += ` AND LOWER(s.full_name) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.full_name}%`);
+      paramCount++;
+    }
+
+    // Filter by father_name (partial match)
+    if (filters.father_name) {
+      query += ` AND LOWER(s.father_name) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.father_name}%`);
+      paramCount++;
+    }
+
+    // Filter by date_of_birth (exact match)
+    if (filters.date_of_birth) {
+      query += ` AND s.date_of_birth = $${paramCount}`;
+      values.push(filters.date_of_birth);
+      paramCount++;
+    }
+
+    // Filter by date_of_birth range
+    if (filters.date_of_birth_from) {
+      query += ` AND s.date_of_birth >= $${paramCount}`;
+      values.push(filters.date_of_birth_from);
+      paramCount++;
+    }
+    if (filters.date_of_birth_to) {
+      query += ` AND s.date_of_birth <= $${paramCount}`;
+      values.push(filters.date_of_birth_to);
+      paramCount++;
+    }
+
+    // Filter by leaving_date (exact match)
+    if (filters.leaving_date) {
+      query += ` AND s.leaving_date = $${paramCount}`;
+      values.push(filters.leaving_date);
+      paramCount++;
+    }
+
+    // Filter by leaving_date range
+    if (filters.leaving_date_from) {
+      query += ` AND s.leaving_date >= $${paramCount}`;
+      values.push(filters.leaving_date_from);
+      paramCount++;
+    }
+    if (filters.leaving_date_to) {
+      query += ` AND s.leaving_date <= $${paramCount}`;
+      values.push(filters.leaving_date_to);
+      paramCount++;
+    }
+
+    // Filter by certificate_year
+    if (filters.certificate_year) {
+      query += ` AND s.certificate_year = $${paramCount}`;
+      values.push(parseInt(filters.certificate_year));
+      paramCount++;
+    }
+
+    // Filter by district
+    if (filters.district) {
+      query += ` AND LOWER(sch.district) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.district}%`);
+      paramCount++;
+    }
+
+    // Filter by taluka
+    if (filters.taluka) {
+      query += ` AND LOWER(sch.taluka) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.taluka}%`);
+      paramCount++;
+    }
+
+    // Filter by caste
+    if (filters.caste) {
+      query += ` AND LOWER(s.caste) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.caste}%`);
+      paramCount++;
+    }
+
+    // Filter by religion
+    if (filters.religion) {
+      query += ` AND LOWER(s.religion) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.religion}%`);
+      paramCount++;
+    }
+
+    // Filter by serial_no
+    if (filters.serial_no) {
+      query += ` AND s.serial_no = $${paramCount}`;
+      values.push(filters.serial_no);
+      paramCount++;
+    }
+
+    // Filter by leaving_class
+    if (filters.leaving_class) {
+      query += ` AND LOWER(s.leaving_class) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.leaving_class}%`);
+      paramCount++;
+    }
+
+    // Filter by created_by
+    if (filters.created_by) {
+      query += ` AND s.created_by = $${paramCount}`;
+      values.push(parseInt(filters.created_by));
+      paramCount++;
+    }
+
+    // Filter by created_at range
+    if (filters.created_at_from) {
+      query += ` AND s.created_at >= $${paramCount}`;
+      values.push(filters.created_at_from);
+      paramCount++;
+    }
+    if (filters.created_at_to) {
+      query += ` AND s.created_at <= $${paramCount}`;
+      values.push(filters.created_at_to);
+      paramCount++;
+    }
+
+    // Filter by updated_at range
+    if (filters.updated_at_from) {
+      query += ` AND s.updated_at >= $${paramCount}`;
+      values.push(filters.updated_at_from);
+      paramCount++;
+    }
+    if (filters.updated_at_to) {
+      query += ` AND s.updated_at <= $${paramCount}`;
+      values.push(filters.updated_at_to);
+      paramCount++;
+    }
+
+    // General search across multiple fields (includes Aadhaar number search)
     if (filters.search) {
       query += ` AND (
         LOWER(s.full_name) LIKE LOWER($${paramCount}) OR
         LOWER(s.student_id) LIKE LOWER($${paramCount}) OR
+        s.uid_aadhar_no LIKE $${paramCount} OR
         LOWER(s.serial_no) LIKE LOWER($${paramCount}) OR
+        LOWER(s.father_name) LIKE LOWER($${paramCount}) OR
+        LOWER(s.mother_name) LIKE LOWER($${paramCount}) OR
+        LOWER(s.surname) LIKE LOWER($${paramCount}) OR
         LOWER(sch.name) LIKE LOWER($${paramCount}) OR
         sch.school_recognition_no LIKE $${paramCount} OR
         sch.udise_no LIKE $${paramCount}
@@ -203,7 +356,24 @@ class Student {
       paramCount++;
     }
 
-    query += ' ORDER BY s.created_at DESC';
+    // Validate sort_by field to prevent SQL injection
+    const allowedSortFields = {
+      'created_at': 's.created_at',
+      'updated_at': 's.updated_at',
+      'full_name': 's.full_name',
+      'student_id': 's.student_id',
+      'date_of_birth': 's.date_of_birth',
+      'leaving_date': 's.leaving_date',
+      'date_of_leaving': 's.leaving_date', // alias
+      'certificate_year': 's.certificate_year',
+      'status': 's.status',
+      'serial_no': 's.serial_no'
+    };
+    
+    const sortField = allowedSortFields[sort_by.toLowerCase()] || 's.created_at';
+    const sortDirection = (sort_order && sort_order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
+    
+    query += ` ORDER BY ${sortField} ${sortDirection}`;
 
     if (limit) {
       query += ` LIMIT $${paramCount}`;
@@ -275,11 +445,167 @@ class Student {
       paramCount++;
     }
 
+    // Filter by student_id
+    if (filters.student_id) {
+      query += ` AND s.student_id = $${paramCount}`;
+      values.push(filters.student_id);
+      paramCount++;
+    }
+
+    // Filter by uid_aadhar_no or aadhaar (exact match) - aadhaar is an alias for uid_aadhar_no
+    const aadharFilter = filters.uid_aadhar_no || filters.aadhaar || filters.aadhar;
+    if (aadharFilter) {
+      query += ` AND s.uid_aadhar_no = $${paramCount}`;
+      values.push(aadharFilter);
+      paramCount++;
+    }
+
+    // Filter by full_name or student_name (partial match) - student_name is an alias for full_name
+    const studentNameFilterCount = filters.full_name || filters.student_name;
+    if (studentNameFilterCount) {
+      query += ` AND LOWER(s.full_name) LIKE LOWER($${paramCount})`;
+      values.push(`%${studentNameFilterCount}%`);
+      paramCount++;
+    }
+
+    // Filter by father_name (partial match)
+    if (filters.father_name) {
+      query += ` AND LOWER(s.father_name) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.father_name}%`);
+      paramCount++;
+    }
+
+    // Filter by date_of_birth (exact match)
+    if (filters.date_of_birth) {
+      query += ` AND s.date_of_birth = $${paramCount}`;
+      values.push(filters.date_of_birth);
+      paramCount++;
+    }
+
+    // Filter by date_of_birth range
+    if (filters.date_of_birth_from) {
+      query += ` AND s.date_of_birth >= $${paramCount}`;
+      values.push(filters.date_of_birth_from);
+      paramCount++;
+    }
+    if (filters.date_of_birth_to) {
+      query += ` AND s.date_of_birth <= $${paramCount}`;
+      values.push(filters.date_of_birth_to);
+      paramCount++;
+    }
+
+    // Filter by leaving_date or date_of_leaving (exact match) - date_of_leaving is an alias for leaving_date
+    const leavingDateFilterCount = filters.leaving_date || filters.date_of_leaving;
+    if (leavingDateFilterCount) {
+      query += ` AND s.leaving_date = $${paramCount}`;
+      values.push(leavingDateFilterCount);
+      paramCount++;
+    }
+
+    // Filter by leaving_date range (supports date_of_leaving_from/to as aliases)
+    const leavingDateFromCount = filters.leaving_date_from || filters.date_of_leaving_from;
+    if (leavingDateFromCount) {
+      query += ` AND s.leaving_date >= $${paramCount}`;
+      values.push(leavingDateFromCount);
+      paramCount++;
+    }
+    const leavingDateToCount = filters.leaving_date_to || filters.date_of_leaving_to;
+    if (leavingDateToCount) {
+      query += ` AND s.leaving_date <= $${paramCount}`;
+      values.push(leavingDateToCount);
+      paramCount++;
+    }
+
+    // Filter by certificate_year
+    if (filters.certificate_year) {
+      query += ` AND s.certificate_year = $${paramCount}`;
+      values.push(parseInt(filters.certificate_year));
+      paramCount++;
+    }
+
+    // Filter by district
+    if (filters.district) {
+      query += ` AND LOWER(sch.district) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.district}%`);
+      paramCount++;
+    }
+
+    // Filter by taluka
+    if (filters.taluka) {
+      query += ` AND LOWER(sch.taluka) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.taluka}%`);
+      paramCount++;
+    }
+
+    // Filter by caste
+    if (filters.caste) {
+      query += ` AND LOWER(s.caste) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.caste}%`);
+      paramCount++;
+    }
+
+    // Filter by religion
+    if (filters.religion) {
+      query += ` AND LOWER(s.religion) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.religion}%`);
+      paramCount++;
+    }
+
+    // Filter by serial_no
+    if (filters.serial_no) {
+      query += ` AND s.serial_no = $${paramCount}`;
+      values.push(filters.serial_no);
+      paramCount++;
+    }
+
+    // Filter by leaving_class
+    if (filters.leaving_class) {
+      query += ` AND LOWER(s.leaving_class) LIKE LOWER($${paramCount})`;
+      values.push(`%${filters.leaving_class}%`);
+      paramCount++;
+    }
+
+    // Filter by created_by
+    if (filters.created_by) {
+      query += ` AND s.created_by = $${paramCount}`;
+      values.push(parseInt(filters.created_by));
+      paramCount++;
+    }
+
+    // Filter by created_at range
+    if (filters.created_at_from) {
+      query += ` AND s.created_at >= $${paramCount}`;
+      values.push(filters.created_at_from);
+      paramCount++;
+    }
+    if (filters.created_at_to) {
+      query += ` AND s.created_at <= $${paramCount}`;
+      values.push(filters.created_at_to);
+      paramCount++;
+    }
+
+    // Filter by updated_at range
+    if (filters.updated_at_from) {
+      query += ` AND s.updated_at >= $${paramCount}`;
+      values.push(filters.updated_at_from);
+      paramCount++;
+    }
+    if (filters.updated_at_to) {
+      query += ` AND s.updated_at <= $${paramCount}`;
+      values.push(filters.updated_at_to);
+      paramCount++;
+    }
+
+    // General search across multiple fields (includes Aadhaar number search)
     if (filters.search) {
       query += ` AND (
         LOWER(s.full_name) LIKE LOWER($${paramCount}) OR
         LOWER(s.student_id) LIKE LOWER($${paramCount}) OR
+        s.uid_aadhar_no LIKE $${paramCount} OR
         LOWER(s.serial_no) LIKE LOWER($${paramCount}) OR
+        LOWER(s.father_name) LIKE LOWER($${paramCount}) OR
+        LOWER(s.mother_name) LIKE LOWER($${paramCount}) OR
+        LOWER(s.surname) LIKE LOWER($${paramCount}) OR
         LOWER(sch.name) LIKE LOWER($${paramCount}) OR
         sch.school_recognition_no LIKE $${paramCount} OR
         sch.udise_no LIKE $${paramCount}
@@ -313,6 +639,22 @@ class Student {
     const query = 'DELETE FROM students WHERE id = $1 RETURNING *';
     const result = await pool.query(query, [id]);
     return result.rows[0];
+  }
+
+  static async getStats() {
+    const query = `
+      SELECT 
+        COUNT(*) as total_records,
+        COUNT(CASE WHEN updated_at != created_at OR updated_by IS NOT NULL THEN 1 END) as updated_records,
+        COUNT(CASE WHEN status != 'draft' THEN 1 END) as status_modified_records
+      FROM students
+    `;
+    const result = await pool.query(query);
+    return {
+      total_records: parseInt(result.rows[0].total_records),
+      updated_records: parseInt(result.rows[0].updated_records),
+      status_modified_records: parseInt(result.rows[0].status_modified_records)
+    };
   }
 }
 

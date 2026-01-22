@@ -218,3 +218,5 @@ curl http://localhost:3000/api/certificates/1
 - Required fields must be included or you'll get validation errors
 - Check the response to see if the insert was successful
 
+
+
