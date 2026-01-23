@@ -129,10 +129,79 @@ class User {
   }
 
   static async delete(id) {
-    // Hard delete - remove user from database
-    const query = 'DELETE FROM users WHERE id = $1 RETURNING id, username, email';
-    const result = await pool.query(query, [id]);
-    return result.rows[0];
+    // Start a transaction to handle foreign key constraints
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // 1. Update audit_logs to set changed_by to NULL (preserve audit history)
+      await client.query(
+        'UPDATE audit_logs SET changed_by = NULL WHERE changed_by = $1',
+        [id]
+      );
+
+      // 2. Update certificate_status_history to set changed_by to NULL
+      await client.query(
+        'UPDATE certificate_status_history SET changed_by = NULL WHERE changed_by = $1',
+        [id]
+      );
+
+      // 3. Delete login sessions for this user
+      await client.query(
+        'DELETE FROM login_sessions WHERE user_id = $1',
+        [id]
+      );
+
+      // 4. Update records where user is referenced as created_by, updated_by, or issued_by
+      // Schools
+      await client.query(
+        'UPDATE schools SET created_by = NULL WHERE created_by = $1',
+        [id]
+      );
+      await client.query(
+        'UPDATE schools SET updated_by = NULL WHERE updated_by = $1',
+        [id]
+      );
+
+      // Students
+      await client.query(
+        'UPDATE students SET created_by = NULL WHERE created_by = $1',
+        [id]
+      );
+      await client.query(
+        'UPDATE students SET updated_by = NULL WHERE updated_by = $1',
+        [id]
+      );
+
+      // Leaving certificates
+      await client.query(
+        'UPDATE leaving_certificates SET created_by = NULL WHERE created_by = $1',
+        [id]
+      );
+      await client.query(
+        'UPDATE leaving_certificates SET updated_by = NULL WHERE updated_by = $1',
+        [id]
+      );
+      await client.query(
+        'UPDATE leaving_certificates SET issued_by = NULL WHERE issued_by = $1',
+        [id]
+      );
+
+      // 5. Now delete the user
+      const result = await client.query(
+        'DELETE FROM users WHERE id = $1 RETURNING id, username, email',
+        [id]
+      );
+
+      await client.query('COMMIT');
+      return result.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   static async softDelete(id) {
