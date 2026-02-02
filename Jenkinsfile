@@ -40,6 +40,8 @@ pipeline {
                     --exclude=logs/ \
                     --exclude=.pm2/ \
                     --exclude=.env.production \
+                    --exclude=.Jenkinsfile \
+                    --exclude=package-lock.json \
                     /var/lib/jenkins/workspace/PRAMAAN-BACKEND_main/ \
                     /var/www/pramaan-backend/
 
