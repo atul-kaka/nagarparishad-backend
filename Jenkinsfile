@@ -33,7 +33,6 @@ pipeline {
               steps {
                    sh '''
                       set -e
-
                       sudo -u mcramtek-admin rsync -av --delete \
                       --no-owner --no-group --no-perms --no-times --omit-dir-times \
                       --exclude=.git/ \
@@ -49,23 +48,27 @@ pipeline {
 
                       echo "Creating .env.production"
 
-                    sudo -u mcramtek-admin bash -c 'cat > /var/www/pramaan-backend/.env.production <<EOF
-                    NODE_ENV=production
-                    PORT=3000
-                    DB_HOST=${DB_HOST}
-                    DB_PORT=${DB_PORT}
-                    DB_NAME=${DB_NAME}
-                    DB_USER=${DB_USER}
-                    DB_PASSWORD=${DB_PASSWORD}
-                    EOF'
-
-                    echo "Reloading PM2"
+                    echo "Creating .env.production"
 
                     sudo -u mcramtek-admin bash -c '
+                    cat <<EOF > /var/www/pramaan-backend/.env.production
+                    NODE_ENV=production
+                    PORT=3000
+                    DB_HOST='"${DB_HOST}"'
+                    DB_PORT='"${DB_PORT}"'
+                    DB_NAME='"${DB_NAME}"'
+                    DB_USER='"${DB_USER}"'
+                    DB_PASSWORD='"${DB_PASSWORD}"'
+                    EOF
+                    '
+
+                    echo ".env.production created"
+
+                    sudo -u mcramtek-admin bash -c "
                     cd /var/www/pramaan-backend &&
                     pm2 reload ecosystem.config.js --env production
-      '
-                    echo "PM2 reload completed"
+                    "
+                    echo "PM2 reloaded"
                 '''
           }
         }
