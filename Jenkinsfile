@@ -21,13 +21,12 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                      # Sync code from Jenkins workspace to runtime folder as mcramtek-admin
-                        sudo -u mcramtek-admin rsync -av --delete \
+                      rsync -av --delete \
                         /var/lib/jenkins/workspace/PRAMAAN-BACKEND_main/ \
                         /var/www/pramaan-backend/
 
-                    # Reload Node app using PM2 as mcramtek-admin
-                        sudo -u mcramtek-admin bash -c "cd /var/www/pramaan-backend && pm2 reload ecosystem.config.js --env production"
+                      cd /var/www/pramaan-backend
+                      pm2 reload ecosystem.config.js --env production
                 '''
             }
         }
