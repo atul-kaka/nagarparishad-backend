@@ -35,6 +35,10 @@ pipeline {
                       # Sync code from Jenkins workspace to runtime folder as mcramtek-admin
                     sudo -u mcramtek-admin rsync -av --delete \
                     --no-owner --no-group --no-perms \
+                    --exclude=.git/ \
+                    --exclude=node_modules/ \
+                    --exclude=logs/ \
+                    --exclude=.pm2/ \
                     --exclude=.env.production \
                     /var/lib/jenkins/workspace/PRAMAAN-BACKEND_main/ \
                     /var/www/pramaan-backend/
