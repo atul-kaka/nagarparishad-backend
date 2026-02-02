@@ -20,15 +20,13 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                // Stop old instance
-               sh 'npm run pm2:stop'
-                
-                // Start new instance
-                sh 'npm run pm2:start'
-                
-                // Save PM2 process list
-                sh 'pm2 save'
-            }
+                sh '''
+                    pm2 stop nagarparishad-api || true
+                    pm2 delete nagarparishad-api || true
+                    pm2 start ecosystem.config.js --env production
+                    pm2 save
+                '''
+    }
         }
     }
 }
