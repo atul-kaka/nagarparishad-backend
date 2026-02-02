@@ -1,12 +1,24 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+// Load environment variables - prioritize .env.production if NODE_ENV is production
+if (process.env.NODE_ENV === 'production') {
+  require('dotenv').config({ path: '.env.production' });
+} else {
+  require('dotenv').config();
+}
+
+// Validate DB_PASSWORD is a string (required for PostgreSQL connection)
+const dbPassword = process.env.DB_PASSWORD;
+if (dbPassword !== undefined && typeof dbPassword !== 'string') {
+  console.error('ERROR: DB_PASSWORD must be a string. Current type:', typeof dbPassword);
+  throw new Error('DB_PASSWORD must be a string');
+}
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'nagarparishad_db',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
+  password: dbPassword || '',
   // Ensure UTF-8 encoding for Marathi and other Unicode characters
   // This is the recommended way to set encoding in pg library
 });
