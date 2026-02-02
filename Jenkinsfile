@@ -21,10 +21,9 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    pm2 stop nagarparishad-api || true
-                    pm2 delete nagarparishad-api || true
-                    pm2 start ecosystem.config.js --env production
+                    pm2 reload ecosystem.config.js --env production
                     pm2 save
+                    pm2 startup
                 '''
     }
         }
