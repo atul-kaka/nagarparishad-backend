@@ -21,9 +21,14 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    pm2 reload ecosystem.config.js --env production
+                      rsync -av --delete \
+                        /var/lib/jenkins/workspace/PRAMAAN-BACKEND_main/ \
+                        /var/www/pramaan-backend/
+
+                      cd /var/www/pramaan-backend
+                      pm2 reload ecosystem.config.js --env production
                 '''
-    }
+            }
         }
     }
 }
