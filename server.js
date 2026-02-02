@@ -6,12 +6,16 @@ require('dotenv').config();
 
 const app = express();
 
+const path = require('path');
+require('dotenv').config({
+  path: path.resolve(__dirname, `.env.${process.env.NODE_ENV || 'production'}`)
+})
+
 // Middleware
 // CORS configuration - allow your domain and localhost for development
 const allowedOrigins = [
-  'https://api.kaamlo.com',
-  'http://api.kaamlo.com',
-  'https://kaamlo.com',
+  'https://api.ramteknagarparishad.in',
+  'https://api.ramteknagarparishad.in',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
