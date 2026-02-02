@@ -22,8 +22,6 @@ pipeline {
             steps {
                 sh '''
                     pm2 reload ecosystem.config.js --env production
-                    pm2 save
-                    pm2 startup
                 '''
     }
         }
