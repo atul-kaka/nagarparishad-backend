@@ -11,3 +11,4 @@ ALTER TABLE students
 COMMENT ON COLUMN students.medium IS 'Medium of instruction for the student certificate (Marathi, Hindi, English, etc.)';
 
 
+

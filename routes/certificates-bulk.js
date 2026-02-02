@@ -3,6 +3,7 @@ const router = express.Router();
 const LeavingCertificate = require('../models/LeavingCertificate');
 const School = require('../models/School');
 const Student = require('../models/Student');
+const { authenticate } = require('../middleware/auth');
 const { mapFieldsToSnakeCase, toSnakeCase } = require('../middleware/fieldMapper');
 const { body, validationResult } = require('express-validator');
 
@@ -29,6 +30,7 @@ const { body, validationResult } = require('express-validator');
  */
 router.post(
   '/bulk',
+  authenticate,
   async (req, res) => {
     try {
       const frontendData = req.body.data || req.body;

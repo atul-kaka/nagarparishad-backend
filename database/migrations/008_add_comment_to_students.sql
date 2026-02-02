@@ -11,3 +11,4 @@ ALTER TABLE students
 COMMENT ON COLUMN students.medium IS 'MARATHI';
 
 
+

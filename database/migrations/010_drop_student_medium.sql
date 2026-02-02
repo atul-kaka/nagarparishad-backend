@@ -5,3 +5,4 @@ ALTER TABLE students
 -- Note: medium remains on schools table for school-level medium
 
 
+

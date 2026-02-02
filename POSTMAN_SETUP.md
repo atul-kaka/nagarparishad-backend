@@ -175,3 +175,4 @@ All protected endpoints will automatically use the `auth_token` variable
 Enjoy testing the API! 🚀
 
 
+

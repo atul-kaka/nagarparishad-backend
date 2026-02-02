@@ -1,6 +1,14 @@
 const pool = require('../config/database');
+const crypto = require('crypto');
 
 class Student {
+  /**
+   * Generate QR code hash for public viewing
+   */
+  static generateQRCodeHash(studentId, timestamp = null) {
+    const data = `${studentId}-${timestamp || Date.now()}`;
+    return crypto.createHash('sha256').update(data).digest('hex');
+  }
   static async create(studentData) {
     const {
       student_id, uid_aadhar_no, full_name, father_name, mother_name,
@@ -11,11 +19,15 @@ class Student {
       school_id, serial_no, previous_school, previous_class,
       admission_date, admission_class, progress_in_studies, conduct,
       leaving_date, leaving_class, studying_class_and_since,
-      reason_for_leaving, remarks, general_register_ref,
+      reason_for_leaving, remarks, school_general_register_no,
       certificate_date, certificate_month, certificate_year,
       class_teacher_signature, clerk_signature, headmaster_signature,
       status, created_by, updated_by
     } = studentData;
+
+    // Map school_general_register_no to general_register_ref for backward compatibility
+    // until migration 012 is run
+    const general_register_ref = school_general_register_no || studentData.general_register_ref;
 
     const query = `
       INSERT INTO students (
@@ -62,7 +74,18 @@ class Student {
   static async findById(id) {
     const query = `
       SELECT 
-        s.*,
+        s.id, s.student_id, s.uid_aadhar_no, s.full_name, s.father_name, s.mother_name,
+        s.surname, s.nationality, s.mother_tongue, s.religion, s.caste, s.sub_caste,
+        s.birth_place_village, s.birth_place_taluka, s.birth_place_district,
+        s.birth_place_state, s.birth_place_country, s.date_of_birth, s.date_of_birth_words,
+        s.school_id, s.serial_no, s.previous_school, s.previous_class,
+        s.admission_date, s.admission_class, s.progress_in_studies, s.conduct,
+        s.leaving_date, s.leaving_class, s.studying_class_and_since,
+        s.reason_for_leaving, s.remarks,
+        s.certificate_date, s.certificate_month, s.certificate_year,
+        s.class_teacher_signature, s.clerk_signature, s.headmaster_signature,
+        s.status, s.created_by, s.updated_by, s.created_at, s.updated_at,
+        s.qr_code_hash, s.comment,
         sch.name as school_name,
         sch.address as school_address,
         sch.taluka as school_taluka,
@@ -70,12 +93,12 @@ class Student {
         sch.state as school_state,
         sch.phone_no as school_phone_no,
         sch.email as school_email,
-        sch.general_register_no as school_general_register_no,
         sch.school_recognition_no,
-        sch.udise_no,
-        sch.affiliation_no,
+        sch.udise_no as school_udise_no,
+        sch.affiliation_no as school_affiliation_no,
         sch.board as school_board,
-        sch.medium as medium
+        sch.medium as medium,
+        COALESCE(s.general_register_ref, sch.general_register_no) as school_general_register_no
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE s.id = $1
@@ -89,7 +112,10 @@ class Student {
       SELECT 
         s.*,
         sch.name as school_name,
-        sch.school_recognition_no
+        sch.school_recognition_no,
+        sch.udise_no as school_udise_no,
+        sch.affiliation_no as school_affiliation_no,
+        COALESCE(s.general_register_ref, sch.general_register_no) as school_general_register_no
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE s.student_id = $1
@@ -98,18 +124,63 @@ class Student {
     return result.rows[0];
   }
 
+  /**
+   * Find student by Aadhar number
+   */
   static async findByAadhar(aadharNo) {
     const query = `
       SELECT 
         s.*,
         sch.name as school_name,
-        sch.school_recognition_no
+        sch.school_recognition_no,
+        sch.udise_no as school_udise_no,
+        sch.affiliation_no as school_affiliation_no,
+        COALESCE(s.general_register_ref, sch.general_register_no) as school_general_register_no
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE s.uid_aadhar_no = $1
     `;
     const result = await pool.query(query, [aadharNo]);
-    return result.rows[0];
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Find student by QR code hash (public access)
+   */
+  static async findByQRCodeHash(hash) {
+    const query = `
+      SELECT 
+        s.id, s.student_id, s.uid_aadhar_no, s.full_name, s.father_name, s.mother_name,
+        s.surname, s.nationality, s.mother_tongue, s.religion, s.caste, s.sub_caste,
+        s.birth_place_village, s.birth_place_taluka, s.birth_place_district,
+        s.birth_place_state, s.birth_place_country, s.date_of_birth, s.date_of_birth_words,
+        s.school_id, s.serial_no, s.previous_school, s.previous_class,
+        s.admission_date, s.admission_class, s.progress_in_studies, s.conduct,
+        s.leaving_date, s.leaving_class, s.studying_class_and_since,
+        s.reason_for_leaving, s.remarks,
+        s.certificate_date, s.certificate_month, s.certificate_year,
+        s.class_teacher_signature, s.clerk_signature, s.headmaster_signature,
+        s.status, s.created_by, s.updated_by, s.created_at, s.updated_at,
+        s.qr_code_hash, s.comment,
+        sch.name as school_name,
+        sch.address as school_address,
+        sch.taluka as school_taluka,
+        sch.district as school_district,
+        sch.state as school_state,
+        sch.phone_no as school_phone_no,
+        sch.email as school_email,
+        sch.school_recognition_no,
+        sch.udise_no as school_udise_no,
+        sch.affiliation_no as school_affiliation_no,
+        sch.board as school_board,
+        sch.medium as school_medium,
+        COALESCE(s.general_register_ref, sch.general_register_no) as school_general_register_no
+      FROM students s
+      LEFT JOIN schools sch ON s.school_id = sch.id
+      WHERE s.qr_code_hash = $1
+    `;
+    const result = await pool.query(query, [hash]);
+    return result.rows[0] || null;
   }
 
   static async findBySchoolAndSerial(schoolId, serialNo) {
@@ -117,7 +188,10 @@ class Student {
       SELECT 
         s.*,
         sch.name as school_name,
-        sch.school_recognition_no
+        sch.school_recognition_no,
+        sch.udise_no as school_udise_no,
+        sch.affiliation_no as school_affiliation_no,
+        COALESCE(s.general_register_ref, sch.general_register_no) as school_general_register_no
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE s.school_id = $1 AND s.serial_no = $2
@@ -131,14 +205,27 @@ class Student {
     const { sort_by = 'created_at', sort_order = 'DESC' } = sorting;
     let query = `
       SELECT 
-        s.*,
+        s.id, s.student_id, s.uid_aadhar_no, s.full_name, s.father_name, s.mother_name,
+        s.surname, s.nationality, s.mother_tongue, s.religion, s.caste, s.sub_caste,
+        s.birth_place_village, s.birth_place_taluka, s.birth_place_district,
+        s.birth_place_state, s.birth_place_country, s.date_of_birth, s.date_of_birth_words,
+        s.school_id, s.serial_no, s.previous_school, s.previous_class,
+        s.admission_date, s.admission_class, s.progress_in_studies, s.conduct,
+        s.leaving_date, s.leaving_class, s.studying_class_and_since,
+        s.reason_for_leaving, s.remarks,
+        s.certificate_date, s.certificate_month, s.certificate_year,
+        s.class_teacher_signature, s.clerk_signature, s.headmaster_signature,
+        s.status, s.created_by, s.updated_by, s.created_at, s.updated_at,
+        s.qr_code_hash, s.comment,
         sch.name as school_name,
         sch.school_recognition_no,
         sch.udise_no as school_udise_no,
+        sch.affiliation_no as school_affiliation_no,
         sch.email as school_email,
         sch.phone_no as school_phone_no,
         sch.address as school_address,
-        sch.medium as medium
+        sch.medium as medium,
+        COALESCE(s.general_register_ref, sch.general_register_no) as school_general_register_no
       FROM students s
       LEFT JOIN schools sch ON s.school_id = sch.id
       WHERE 1=1
@@ -619,8 +706,16 @@ class Student {
   }
 
   static async update(id, studentData) {
-    const fields = Object.keys(studentData);
-    const values = Object.values(studentData);
+    // Map school_general_register_no to general_register_ref for backward compatibility
+    // until migration 012 is run
+    const updateData = { ...studentData };
+    if (updateData.school_general_register_no !== undefined) {
+      updateData.general_register_ref = updateData.school_general_register_no;
+      delete updateData.school_general_register_no;
+    }
+    
+    const fields = Object.keys(updateData);
+    const values = Object.values(updateData);
     values.push(id);
 
     const setClause = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');

@@ -36,7 +36,8 @@ const certificateFieldMap = {
   leavingClass: 'leaving_class',
   classStudyingDetails: 'studying_class_and_since',
   reasonForLeaving: 'reason_for_leaving',
-  generalRegisterReference: 'general_register_ref',
+  generalRegisterReference: 'school_general_register_no',
+  schoolGeneralRegisterNo: 'school_general_register_no',
   certificateDate: 'certificate_date',
   certificateMonth: 'certificate_month',
   certificateYear: 'certificate_year',
@@ -54,6 +55,16 @@ const reverseFieldMap = {};
 Object.keys(certificateFieldMap).forEach(key => {
   reverseFieldMap[certificateFieldMap[key]] = key;
 });
+
+// Override for backward compatibility - prefer generalRegisterReference over schoolGeneralRegisterNo
+reverseFieldMap['school_general_register_no'] = 'generalRegisterReference';
+// Backward compatibility: also map old column name if migration hasn't been run yet
+reverseFieldMap['general_register_ref'] = 'generalRegisterReference';
+
+// Map school fields to camelCase for responses
+reverseFieldMap['school_udise_no'] = 'udiseNo';
+reverseFieldMap['school_affiliation_no'] = 'affiliationNo';
+reverseFieldMap['school_recognition_no'] = 'schoolRecognitionNumber';
 
 /**
  * Convert camelCase object to snake_case

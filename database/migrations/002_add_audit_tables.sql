@@ -74,3 +74,4 @@ CREATE INDEX IF NOT EXISTS idx_leaving_certificates_status ON leaving_certificat
 
 
 
+

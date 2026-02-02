@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');
+const { authenticate } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -63,23 +64,37 @@ const AuditLog = require('../models/AuditLog');
  *                   items:
  *                     $ref: '#/components/schemas/AuditLog'
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
     const filters = {
       table_name: req.query.table_name,
       record_id: req.query.record_id ? parseInt(req.query.record_id) : undefined,
       changed_by: req.query.changed_by ? parseInt(req.query.changed_by) : undefined,
       action: req.query.action,
       start_date: req.query.start_date,
-      end_date: req.query.end_date,
-      limit: req.query.limit ? parseInt(req.query.limit) : 100
+      end_date: req.query.end_date
     };
 
     // Remove undefined filters
     Object.keys(filters).forEach(key => filters[key] === undefined && delete filters[key]);
 
-    const logs = await AuditLog.findAll(filters);
-    res.json({ success: true, data: logs });
+    const logs = await AuditLog.findAll(filters, { limit, offset });
+    const total = await AuditLog.count(filters);
+
+    res.json({ 
+      success: true, 
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching audit logs:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch audit logs' });
@@ -121,7 +136,7 @@ router.get('/', async (req, res) => {
  *                   items:
  *                     $ref: '#/components/schemas/AuditLog'
  */
-router.get('/:table_name/:record_id', async (req, res) => {
+router.get('/:table_name/:record_id', authenticate, async (req, res) => {
   try {
     const logs = await AuditLog.findByTableAndRecord(
       req.params.table_name,

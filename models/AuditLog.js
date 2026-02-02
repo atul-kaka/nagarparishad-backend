@@ -39,7 +39,7 @@ class AuditLog {
     return result.rows;
   }
 
-  static async findAll(filters = {}) {
+  static async findAll(filters = {}, pagination = {}) {
     let query = `
       SELECT 
         al.*,
@@ -88,11 +88,72 @@ class AuditLog {
       paramCount++;
     }
 
-    query += ' ORDER BY al.changed_at DESC LIMIT $' + paramCount;
-    values.push(filters.limit || 100);
+    query += ' ORDER BY al.changed_at DESC';
+
+    // Add pagination
+    if (pagination.limit) {
+      query += ` LIMIT $${paramCount}`;
+      values.push(pagination.limit);
+      paramCount++;
+    }
+
+    if (pagination.offset !== undefined) {
+      query += ` OFFSET $${paramCount}`;
+      values.push(pagination.offset);
+      paramCount++;
+    }
 
     const result = await pool.query(query, values);
     return result.rows;
+  }
+
+  static async count(filters = {}) {
+    let query = `
+      SELECT COUNT(*) as total
+      FROM audit_logs al
+      WHERE 1=1
+    `;
+    const values = [];
+    let paramCount = 1;
+
+    if (filters.table_name) {
+      query += ` AND al.table_name = $${paramCount}`;
+      values.push(filters.table_name);
+      paramCount++;
+    }
+
+    if (filters.record_id) {
+      query += ` AND al.record_id = $${paramCount}`;
+      values.push(filters.record_id);
+      paramCount++;
+    }
+
+    if (filters.changed_by) {
+      query += ` AND al.changed_by = $${paramCount}`;
+      values.push(filters.changed_by);
+      paramCount++;
+    }
+
+    if (filters.action) {
+      query += ` AND al.action = $${paramCount}`;
+      values.push(filters.action);
+      paramCount++;
+    }
+
+    if (filters.start_date) {
+      query += ` AND al.changed_at >= $${paramCount}`;
+      values.push(filters.start_date);
+      paramCount++;
+    }
+
+    if (filters.end_date) {
+      query += ` AND al.changed_at <= $${paramCount}`;
+      values.push(filters.end_date);
+      paramCount++;
+    }
+
+    const result = await pool.query(query, values);
+    return parseInt(result.rows[0].total);
   }
 }
 

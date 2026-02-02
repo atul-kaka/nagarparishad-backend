@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const LeavingCertificate = require('../models/LeavingCertificate');
 const { body, validationResult } = require('express-validator');
+const { authenticate } = require('../middleware/auth');
 const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
 
 /**
@@ -42,7 +43,7 @@ const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
  *                   items:
  *                     $ref: '#/components/schemas/LeavingCertificate'
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const filters = {};
     if (req.query.school_id) filters.school_id = parseInt(req.query.school_id);
@@ -75,7 +76,7 @@ router.get('/', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const certificate = await LeavingCertificate.findById(req.params.id);
     if (!certificate) {
@@ -111,7 +112,7 @@ router.get('/:id', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/school/:schoolId/serial/:serialNo', async (req, res) => {
+router.get('/school/:schoolId/serial/:serialNo', authenticate, async (req, res) => {
   try {
     const certificate = await LeavingCertificate.findBySerialNo(
       req.params.schoolId,
@@ -173,6 +174,7 @@ router.get('/school/:schoolId/serial/:serialNo', async (req, res) => {
  */
 router.post(
   '/',
+  authenticate,
   mapFieldsToSnakeCase, // Transform camelCase to snake_case
   [
     body('school_id').notEmpty().withMessage('School ID is required'),
@@ -245,7 +247,7 @@ router.post(
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const certificate = await LeavingCertificate.update(req.params.id, req.body);
     if (!certificate) {
@@ -288,7 +290,7 @@ router.put('/:id', async (req, res) => {
  *       200:
  *         description: Status updated
  */
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authenticate, async (req, res) => {
   try {
     const { status } = req.body;
     if (!status || !['draft', 'issued', 'archived'].includes(status)) {
@@ -327,7 +329,7 @@ router.patch('/:id/status', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
     const certificate = await LeavingCertificate.delete(req.params.id);
     if (!certificate) {

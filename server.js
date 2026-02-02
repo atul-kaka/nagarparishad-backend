@@ -35,16 +35,25 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Configure Express to handle UTF-8 properly for Marathi and other Unicode characters
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Encryption middleware - decrypts requests and encrypts responses
-const { encryptionMiddleware } = require('./middleware/encryption');
-app.use(encryptionMiddleware);
+// Set UTF-8 charset in response headers
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
-// Global Authentication - require login for all routes except public endpoints
-const globalAuth = require('./middleware/globalAuth');
-app.use(globalAuth);
+// Encryption middleware - decrypts requests and encrypts responses (optional)
+try {
+  const { encryptionMiddleware } = require('./middleware/encryption');
+  app.use(encryptionMiddleware);
+  console.log('🔐 Encryption middleware loaded');
+} catch (error) {
+  // Encryption middleware is optional - continue without it
+  console.log('⚠️  Encryption middleware not found - running without encryption');
+}
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -171,9 +180,6 @@ app.listen(PORT, HOST, () => {
   } else {
     console.log('🔓 Encryption: DISABLED (Use X-Encrypt-Request/Response headers or set ENABLE_ENCRYPTION=true)');
   }
-  
-  // Display authentication status
-  console.log('🔒 Authentication: REQUIRED (All routes protected except public endpoints)');
   
   // Display network information
   const os = require('os');

@@ -115,8 +115,52 @@ class User {
       RETURNING id, username, email, full_name, role, phone_no, is_active, created_at, updated_at
     `;
 
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    try {
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      // If column doesn't exist (error code 42703), try without the problematic fields
+      if (error.code === '42703') {
+        // Fields that might not exist in older database schemas
+        const optionalFields = [
+          'last_ip_address', 'last_user_agent', 'password_expires_at', 
+          'password_changed_at', 'failed_login_attempts', 'locked_until',
+          'otp_code', 'otp_expires_at', 'otp_verified'
+        ];
+        
+        // Filter out optional fields that might not exist
+        const safeFields = fields.filter(f => !optionalFields.includes(f));
+        if (safeFields.length > 0) {
+          const safeValues = safeFields.map(f => {
+            const idx = fields.indexOf(f);
+            return values[idx];
+          });
+          safeValues.push(id);
+          const safeSetClause = safeFields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+          const safeQuery = `
+            UPDATE users 
+            SET ${safeSetClause}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $${safeFields.length + 1}
+            RETURNING id, username, email, full_name, role, phone_no, is_active, created_at, updated_at
+          `;
+          const result = await pool.query(safeQuery, safeValues);
+          console.warn('⚠️  Some user fields were skipped because columns do not exist. Run migration 015 to add them: npm run migrate');
+          return result.rows[0];
+        } else {
+          // All fields were optional, just update updated_at
+          const minimalQuery = `
+            UPDATE users 
+            SET updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING id, username, email, full_name, role, phone_no, is_active, created_at, updated_at
+          `;
+          const result = await pool.query(minimalQuery, [id]);
+          console.warn('⚠️  All requested fields were skipped because columns do not exist. Run migration 015 to add them: npm run migrate');
+          return result.rows[0];
+        }
+      }
+      throw error;
+    }
   }
 
   static async updateLastLogin(id) {

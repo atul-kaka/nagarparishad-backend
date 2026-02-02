@@ -270,9 +270,10 @@ const options = {
             remarks: {
               type: 'string'
             },
-            general_register_ref: {
+            school_general_register_no: {
               type: 'string',
-              example: 'GR001'
+              example: 'GR001',
+              description: 'Reference to the school\'s general register number'
             },
             certificate_date: {
               type: 'string',
@@ -548,6 +549,7 @@ const options = {
 const swaggerSpec = swaggerJsdoc(options);
 
 module.exports = swaggerSpec;
+
 
 
 

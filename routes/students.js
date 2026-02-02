@@ -4,7 +4,7 @@ const Student = require('../models/Student');
 const { body, validationResult } = require('express-validator');
 const { authenticate } = require('../middleware/auth');
 const { canAddDocument, canEditDocument, canDeleteDocument, canEdit, canDelete } = require('../middleware/rbac');
-const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
+const { mapFieldsToSnakeCase, mapFieldsToCamelCase, toCamelCase } = require('../middleware/fieldMapper');
 
 /**
  * @swagger
@@ -27,7 +27,7 @@ const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
  *                   items:
  *                     $ref: '#/components/schemas/Student'
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticate, mapFieldsToCamelCase, async (req, res) => {
   try {
     // Support pagination and filters
     const page = parseInt(req.query.page) || 1;
@@ -90,9 +90,12 @@ router.get('/', async (req, res) => {
     const students = await Student.findAll(filters, { limit, offset }, sorting);
     const total = await Student.count(filters);
     
+    // Convert response to camelCase for frontend compatibility
+    const studentsCamelCase = students.map(student => toCamelCase(student));
+    
     res.json({
       success: true,
-      data: students,
+      data: studentsCamelCase,
       pagination: {
         page,
         limit,
@@ -228,7 +231,66 @@ router.get('/', async (req, res) => {
  *                     total_pages:
  *                       type: integer
  */
-router.post('/search', async (req, res) => {
+// GET /search - handle search via query parameters (must come before /:id)
+router.get('/search', authenticate, mapFieldsToCamelCase, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = (page - 1) * limit;
+    
+    // Build filters from query parameters
+    const filters = {
+      school_id: req.query.school_id,
+      school_name: req.query.school_name,
+      school_recognition_no: req.query.school_recognition_no,
+      udise_no: req.query.udise_no,
+      school_identifier: req.query.school_identifier,
+      district: req.query.district,
+      taluka: req.query.taluka,
+      student_id: req.query.student_id,
+      uid_aadhar_no: req.query.uid_aadhar_no || req.query.aadhaar || req.query.aadhar,
+      full_name: req.query.full_name,
+      father_name: req.query.father_name,
+      mother_name: req.query.mother_name,
+      date_of_birth: req.query.date_of_birth,
+      date_of_birth_from: req.query.date_of_birth_from,
+      date_of_birth_to: req.query.date_of_birth_to,
+      leaving_date: req.query.leaving_date || req.query.date_of_leaving,
+      leaving_date_from: req.query.leaving_date_from || req.query.date_of_leaving_from,
+      leaving_date_to: req.query.leaving_date_to || req.query.date_of_leaving_to,
+      leaving_class: req.query.leaving_class,
+      status: req.query.status,
+      serial_no: req.query.serial_no
+    };
+    
+    // Remove undefined values
+    Object.keys(filters).forEach(key => filters[key] === undefined && delete filters[key]);
+    
+    const sort_by = req.query.sort_by || 'created_at';
+    const sort_order = req.query.sort_order || 'DESC';
+    const sorting = { sort_by, sort_order };
+    
+    const students = await Student.findAll(filters, { limit, offset }, sorting);
+    const total = await Student.count(filters);
+    
+    res.json({
+      success: true,
+      data: students,
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error searching students:', error);
+    res.status(500).json({ success: false, error: 'Failed to search students' });
+  }
+});
+
+// POST /search - handle search via request body
+router.post('/search', authenticate, mapFieldsToCamelCase, async (req, res) => {
   try {
     const { page = 1, limit = 100, filters = {}, sort_by = 'created_at', sort_order = 'DESC' } = req.body;
     const pageNum = parseInt(page) || 1;
@@ -298,7 +360,7 @@ router.post('/search', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.get('/stats', async (req, res) => {
+router.get('/stats', authenticate, async (req, res) => {
   try {
     const stats = await Student.getStats();
     res.json({
@@ -308,6 +370,60 @@ router.get('/stats', async (req, res) => {
   } catch (error) {
     console.error('Error fetching student stats:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch student statistics' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/students/view/{hash}:
+ *   get:
+ *     summary: View student by QR code hash (Public - No authentication required)
+ *     tags: [Students]
+ *     parameters:
+ *       - in: path
+ *         name: hash
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 64-character QR code hash
+ *     responses:
+ *       200:
+ *         description: Student details
+ *       404:
+ *         description: Student not found
+ */
+router.get('/view/:hash', async (req, res) => {
+  try {
+    const { hash } = req.params;
+    
+    if (!hash || hash.length !== 64) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid QR code hash. Must be 64 characters.'
+      });
+    }
+
+    const student = await Student.findByQRCodeHash(hash);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        error: 'Student not found or QR code is invalid'
+      });
+    }
+
+    // Only return public information (exclude sensitive data if needed)
+    // For now, return all data as it's a school certificate system
+    res.json({
+      success: true,
+      data: student
+    });
+  } catch (error) {
+    console.error('Error fetching student by QR code:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch student'
+    });
   }
 });
 
@@ -329,7 +445,7 @@ router.get('/stats', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
@@ -361,7 +477,7 @@ router.get('/:id', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/search/:identifier', async (req, res) => {
+router.get('/search/:identifier', authenticate, async (req, res) => {
   try {
     const { identifier } = req.params;
     let student = await Student.findByStudentId(identifier);
@@ -499,7 +615,7 @@ router.put('/:id', authenticate, canEditDocument, mapFieldsToSnakeCase, async (r
       'school_id', 'serial_no', 'previous_school', 'previous_class',
       'admission_date', 'admission_class', 'progress_in_studies', 'conduct',
       'leaving_date', 'leaving_class', 'studying_class_and_since',
-      'reason_for_leaving', 'remarks', 'general_register_ref',
+      'reason_for_leaving', 'remarks', 'school_general_register_no',
       'certificate_date', 'certificate_month', 'certificate_year',
       'class_teacher_signature', 'clerk_signature', 'headmaster_signature',
       'status', 'created_by', 'updated_by'

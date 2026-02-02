@@ -3,6 +3,7 @@ const router = express.Router();
 const LeavingCertificate = require('../models/LeavingCertificate');
 const AuditLog = require('../models/AuditLog');
 const pool = require('../config/database');
+const { authenticate } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -61,7 +62,7 @@ const pool = require('../config/database');
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', authenticate, async (req, res) => {
   try {
     const { status, reason, notes, user_id } = req.body;
     
@@ -185,7 +186,7 @@ router.patch('/:id/status', async (req, res) => {
  *                       notes:
  *                         type: string
  */
-router.get('/:id/status-history', async (req, res) => {
+router.get('/:id/status-history', authenticate, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT 

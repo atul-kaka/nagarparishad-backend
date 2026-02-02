@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const School = require('../models/School');
 const { body, validationResult } = require('express-validator');
+const { authenticate } = require('../middleware/auth');
 const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
 
 /**
@@ -27,7 +28,7 @@ const { mapFieldsToSnakeCase } = require('../middleware/fieldMapper');
  *       500:
  *         $ref: '#/components/responses/ServerError'
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const schools = await School.findAll();
     res.json({ success: true, data: schools });
@@ -65,7 +66,7 @@ router.get('/', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const school = await School.findById(req.params.id);
     if (!school) {
@@ -123,6 +124,7 @@ router.get('/:id', async (req, res) => {
  */
 router.post(
   '/',
+  authenticate,
   mapFieldsToSnakeCase, // Transform camelCase to snake_case
   [
     body('name').notEmpty().withMessage('School name is required'),
@@ -187,7 +189,7 @@ router.post(
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const school = await School.update(req.params.id, req.body);
     if (!school) {
@@ -237,7 +239,7 @@ router.put('/:id', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
     const school = await School.delete(req.params.id);
     if (!school) {

@@ -709,14 +709,45 @@
 				},
 				{
 					"name": "Get Student by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Auto-save QR code hash for easy testing",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.qr_code_hash) {",
+									"        pm.collectionVariables.set(\"student_qr_hash\", jsonData.data.qr_code_hash);",
+									"        console.log('QR hash saved:', jsonData.data.qr_code_hash);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
 						"url": {
-							"raw": "{{base_url}}/api/students/1",
+							"raw": "{{base_url}}/api/students/82",
 							"host": ["{{base_url}}"],
-							"path": ["api", "students", "1"]
-						}
+							"path": ["api", "students", "82"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "82",
+									"description": "Student ID"
+								}
+							]
+						},
+						"description": "Get student by ID. QR code hash is automatically saved to collection variable 'student_qr_hash' for easy testing."
 					},
 					"response": []
 				},
@@ -730,6 +761,44 @@
 							"host": ["{{base_url}}"],
 							"path": ["api", "students", "search", "STU-0001"]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "View Student by QR Code (Public)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Save QR code hash from response for easy testing",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.qr_code_hash) {",
+									"        pm.collectionVariables.set(\"student_qr_hash\", jsonData.data.qr_code_hash);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/students/view/{{student_qr_hash}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "students", "view", "{{student_qr_hash}}"],
+							"variable": [
+								{
+									"key": "hash",
+									"value": "{{student_qr_hash}}",
+									"description": "64-character QR code hash from student record. Get this from student creation response or database."
+								}
+							]
+						},
+						"description": "Public endpoint to view student record by scanning QR code. No authentication required.\n\n**How to get QR hash:**\n1. Create a student - response includes qr_code_hash\n2. Get student by ID - response includes qr_code_hash\n3. Query database: SELECT qr_code_hash FROM students WHERE id = ?\n\n**Example hash:** 8cc502f56d04e9d61c33e7ea332399b8dc1528ba516bc1ee2e7afc7d6e128337"
 					},
 					"response": []
 				},
@@ -1277,6 +1346,18 @@
 			"key": "auth_token",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "student_qr_hash",
+			"value": "8cc502f56d04e9d61c33e7ea332399b8dc1528ba516bc1ee2e7afc7d6e128337",
+			"type": "string",
+			"description": "QR code hash for viewing student records. Auto-populated when creating/getting students."
+		},
+		{
+			"key": "student_id",
+			"value": "82",
+			"type": "string",
+			"description": "Student ID for testing. Auto-populated when creating students."
 		}
 	]
 }

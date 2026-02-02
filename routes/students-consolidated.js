@@ -109,7 +109,7 @@ router.post(
         studying_class_and_since: toNull(data.studying_class_and_since || data.classStudyingDetails),
         reason_for_leaving: toNull(data.reason_for_leaving || data.reasonForLeaving),
         remarks: toNull(data.remarks),
-        general_register_ref: toNull(data.general_register_ref || data.generalRegisterReference),
+        school_general_register_no: toNull(data.school_general_register_no || data.generalRegisterReference || data.schoolGeneralRegisterNo),
         certificate_date: toNull(data.certificate_date || data.certificateDate),
         certificate_month: toNull(data.certificate_month || data.certificateMonth),
         certificate_year: (data.certificate_year && data.certificate_year !== '') 

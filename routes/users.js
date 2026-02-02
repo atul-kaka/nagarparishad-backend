@@ -111,7 +111,7 @@ router.post(
  *                   items:
  *                     $ref: '#/components/schemas/User'
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const users = await User.findAll();
     res.json({ success: true, data: users });
@@ -139,7 +139,7 @@ router.get('/', async (req, res) => {
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
