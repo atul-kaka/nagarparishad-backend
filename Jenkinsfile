@@ -30,24 +30,26 @@ pipeline {
         }
 
         stage('Deploy') {
-            steps {
-                sh '''
-                      # Sync code from Jenkins workspace to runtime folder as mcramtek-admin
-                    sudo -u mcramtek-admin rsync -av --delete \
-                    --no-owner --no-group --no-perms --no-times \
-                    --omit-dir-times \
-                    --exclude=.git/ \
-                    --exclude=node_modules/ \
-                    --exclude=logs/ \
-                    --exclude=.pm2/ \
-                    --exclude=.env.production \
-                    --exclude=Jenkinsfile \
-                    --exclude=.Jenkinsfile \
-                    --exclude=package-lock.json \
-                    /var/lib/jenkins/workspace/PRAMAAN-BACKEND_main/ \
-                    /var/www/pramaan-backend/
+              steps {
+                   sh '''
+                      set -e
 
-                    cat > /var/www/pramaan-backend/.env.production <<EOF
+                      sudo -u mcramtek-admin rsync -av --delete \
+                      --no-owner --no-group --no-perms --no-times --omit-dir-times \
+                      --exclude=.git/ \
+                      --exclude=node_modules/ \
+                      --exclude=logs/ \
+                      --exclude=.pm2/ \
+                      --exclude=.env.production \
+                      --exclude=Jenkinsfile \
+                      --exclude=.Jenkinsfile \
+                      --exclude=package-lock.json \
+                      /var/lib/jenkins/workspace/PRAMAAN-BACKEND_main/ \
+                      /var/www/pramaan-backend/
+
+                      echo "Creating .env.production"
+
+                    sudo -u mcramtek-admin bash -c 'cat > /var/www/pramaan-backend/.env.production <<EOF
                     NODE_ENV=production
                     PORT=3000
                     DB_HOST=${DB_HOST}
@@ -55,14 +57,17 @@ pipeline {
                     DB_NAME=${DB_NAME}
                     DB_USER=${DB_USER}
                     DB_PASSWORD=${DB_PASSWORD}
-                    ENCRYPTION_KEY=${ENCRYPTION_KEY}
-                    ENABLE_ENCRYPTION=${ENABLE_ENCRYPTION}
-                    EOF
+                    EOF'
 
-                    # Reload Node app using PM2 as mcramtek-admin
-                    sudo -u mcramtek-admin bash -c "cd /var/www/pramaan-backend && pm2 reload ecosystem.config.js --env production"
+                    echo "Reloading PM2"
+
+                    sudo -u mcramtek-admin bash -c '
+                    cd /var/www/pramaan-backend &&
+                    pm2 reload ecosystem.config.js --env production
+      '
+                    echo "PM2 reload completed"
                 '''
-            }
+          }
         }
     }
 }
