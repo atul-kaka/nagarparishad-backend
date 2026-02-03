@@ -15,12 +15,12 @@ require('dotenv').config({
 // CORS configuration - allow your domain and localhost for development
 const allowedOrigins = [
   'https://api.ramteknagarparishad.in',
-  'https://api.nagarparishad.in',
-  'http://api.nagarparishad.in',
-  'https://nagarparishad.in',
-  'http://nagarparishad.in',
-  'https://www.nagarparishad.in',
-  'http://www.nagarparishad.in',
+  'https://api.ramteknagarparishad.in',
+  'http://api.ramteknagarparishad.in',
+  'https://ramteknagarparishad.in',
+  'http://ramteknagarparishad.in',
+  'https://www.ramteknagarparishad.in',
+  'http://www.ramteknagarparishad.in',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
