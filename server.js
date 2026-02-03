@@ -15,7 +15,12 @@ require('dotenv').config({
 // CORS configuration - allow your domain and localhost for development
 const allowedOrigins = [
   'https://api.ramteknagarparishad.in',
-  'http://api.ramteknagarparishad.in',
+  'https://api.nagarparishad.in',
+  'http://api.nagarparishad.in',
+  'https://nagarparishad.in',
+  'http://nagarparishad.in',
+  'https://www.nagarparishad.in',
+  'http://www.nagarparishad.in',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
@@ -34,10 +39,15 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      // Log the blocked origin for debugging
+      console.warn(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Language'],
+  exposedHeaders: ['Content-Range', 'X-Total-Count']
 }));
 // Configure Express to handle UTF-8 properly for Marathi and other Unicode characters
 app.use(express.json({ limit: '10mb' }));
