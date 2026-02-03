@@ -29,6 +29,11 @@ class Student {
     // until migration 012 is run
     const general_register_ref = school_general_register_no || studentData.general_register_ref;
 
+    // Generate QR code hash for public viewing
+    // Use student_id if available, otherwise use a temporary ID that will be replaced with actual ID
+    const tempId = student_id || `temp-${Date.now()}`;
+    const qrCodeHash = this.generateQRCodeHash(tempId);
+
     const query = `
       INSERT INTO students (
         student_id, uid_aadhar_no, full_name, father_name, mother_name,
@@ -41,11 +46,11 @@ class Student {
         reason_for_leaving, remarks, general_register_ref,
         certificate_date, certificate_month, certificate_year,
         class_teacher_signature, clerk_signature, headmaster_signature,
-        status, created_by, updated_by
+        status, created_by, updated_by, qr_code_hash
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
         $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35,
-        $36, $37, $38, $39, $40, $41
+        $36, $37, $38, $39, $40, $41, $42
       )
       RETURNING *
     `;
@@ -64,11 +69,23 @@ class Student {
       ensureNull(reason_for_leaving), ensureNull(remarks), ensureNull(general_register_ref),
       ensureNull(certificate_date), ensureNull(certificate_month), ensureNull(certificate_year),
       ensureNull(class_teacher_signature), ensureNull(clerk_signature), ensureNull(headmaster_signature),
-      status || 'draft', ensureNull(created_by), ensureNull(updated_by)
+      status || 'draft', ensureNull(created_by), ensureNull(updated_by), qrCodeHash
     ];
 
     const result = await pool.query(query, values);
-    return result.rows[0];
+    const createdStudent = result.rows[0];
+    
+    // Regenerate QR code hash with actual student ID for better uniqueness
+    if (createdStudent.id) {
+      const finalQrCodeHash = this.generateQRCodeHash(createdStudent.id.toString(), createdStudent.created_at);
+      await pool.query(
+        'UPDATE students SET qr_code_hash = $1 WHERE id = $2',
+        [finalQrCodeHash, createdStudent.id]
+      );
+      createdStudent.qr_code_hash = finalQrCodeHash;
+    }
+    
+    return createdStudent;
   }
 
   static async findById(id) {

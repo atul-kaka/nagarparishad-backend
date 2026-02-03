@@ -98,6 +98,12 @@ async function authenticate(req, res, next) {
     const token = extractToken(req);
     
     if (!token) {
+      console.warn('Authentication failed: No token provided', {
+        path: req.path,
+        method: req.method,
+        hasAuthHeader: !!req.headers.authorization,
+        authHeader: req.headers.authorization ? 'present' : 'missing'
+      });
       return res.status(401).json({
         success: false,
         error: 'Authentication required. Please provide a valid token.'
@@ -107,6 +113,12 @@ async function authenticate(req, res, next) {
     const decoded = verifyToken(token);
     
     if (!decoded) {
+      console.warn('Authentication failed: Invalid or expired token', {
+        path: req.path,
+        method: req.method,
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...'
+      });
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token'
