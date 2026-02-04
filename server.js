@@ -16,11 +16,8 @@ require('dotenv').config({
 const allowedOrigins = [
   'https://api.ramteknagarparishad.in',
   'https://api.ramteknagarparishad.in',
-  'http://api.ramteknagarparishad.in',
   'https://ramteknagarparishad.in',
-  'http://ramteknagarparishad.in',
   'https://www.ramteknagarparishad.in',
-  'http://www.ramteknagarparishad.in',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
@@ -46,7 +43,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Language'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Language', 'X-Encrypt-Request', 'X-Encrypt-Response'],
   exposedHeaders: ['Content-Range', 'X-Total-Count']
 }));
 // Configure Express to handle UTF-8 properly for Marathi and other Unicode characters
