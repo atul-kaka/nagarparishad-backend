@@ -75,10 +75,29 @@ function decrypt(encryptedData) {
 }
 
 /**
+ * List of public routes that should never use encryption
+ * These are public endpoints that need to be accessible without encryption overhead
+ */
+const PUBLIC_ROUTES = [
+  '/api/students/view/',  // QR code public viewing
+  '/health',              // Health check
+  '/',                    // API info
+  '/api-docs'             // Swagger docs
+];
+
+/**
+ * Check if the current route is a public route that should skip encryption
+ */
+function isPublicRoute(path) {
+  return PUBLIC_ROUTES.some(route => path.startsWith(route));
+}
+
+/**
  * Encryption Middleware
  * 
  * IMPORTANT: 
  * - Skips OPTIONS requests (CORS preflight) - these must pass through unchanged
+ * - Skips public routes (QR code viewing, health checks, etc.) - these should not be encrypted
  * - Only processes requests with X-Encrypt-Request header or when ENABLE_ENCRYPTION=true
  * - Preserves CORS headers
  */
@@ -86,6 +105,12 @@ const encryptionMiddleware = (req, res, next) => {
   // CRITICAL: Skip OPTIONS requests (CORS preflight)
   // These must pass through unchanged to allow CORS to work
   if (req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  // CRITICAL: Skip public routes - these should never be encrypted
+  // Public routes like QR code viewing need to be accessible without encryption
+  if (isPublicRoute(req.path)) {
     return next();
   }
   
