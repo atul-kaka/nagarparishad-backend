@@ -79,10 +79,7 @@ function decrypt(encryptedData) {
  * These are public endpoints that need to be accessible without encryption overhead
  */
 const PUBLIC_ROUTES = [
-  '/api/students/view/',  // QR code public viewing
-  '/health',              // Health check
-  '/',                    // API info
-  '/api-docs'             // Swagger docs
+  '/api/students/view/'
 ];
 
 /**
@@ -123,59 +120,26 @@ const encryptionMiddleware = (req, res, next) => {
   }
   
   // Decrypt request body if needed
-  if (shouldEncryptRequest && req.body) {
+  if (shouldEncryptRequest && req.body && typeof req.body === 'object') {
     try {
-      let encryptedData = null;
-      
-      // Check different formats of encrypted data
+      // If body is a string (encrypted), decrypt it
       if (typeof req.body === 'string') {
-        // Body is a string (encrypted)
-        encryptedData = req.body;
-      } else if (req.body && typeof req.body === 'object') {
-        // Check for encrypted field in object
-        if (req.body.encrypted && typeof req.body.encrypted === 'string') {
-          // Format: { encrypted: "encrypted_string_here" }
-          encryptedData = req.body.encrypted;
-        } else if (req.body.data && typeof req.body.data === 'string' && req.body.encrypted === true) {
-          // Format: { encrypted: true, data: "encrypted_string_here" }
-          encryptedData = req.body.data;
-        }
-      }
-      
-      // If we found encrypted data, decrypt it
-      if (encryptedData) {
-        const decrypted = decrypt(encryptedData);
+        const decrypted = decrypt(req.body);
         try {
-          // Try to parse as JSON
-          const parsed = JSON.parse(decrypted);
-          req.body = parsed;
+          req.body = JSON.parse(decrypted);
         } catch (e) {
-          // If not JSON, use as-is (shouldn't happen for API requests)
-          console.warn('Decrypted data is not JSON:', decrypted.substring(0, 100));
-          req.body = { raw: decrypted };
+          req.body = decrypted;
         }
-      }
-      // If no encrypted data found but encryption header is set, log warning
-      // This might be intentional (some endpoints might not need encryption)
-      else if (req.headers['x-encrypt-request'] === 'true') {
-        // Header says encrypt, but body doesn't have encrypted data
-        // This is okay - maybe the endpoint doesn't require encryption
-        // Or the body is already in plain format
+      } else if (req.body.encrypted) {
+        // If body has encrypted field
+        const decrypted = decrypt(req.body.encrypted);
+        req.body = JSON.parse(decrypted);
       }
     } catch (error) {
       console.error('Request decryption error:', error);
-      console.error('Request details:', {
-        path: req.path,
-        method: req.method,
-        bodyType: typeof req.body,
-        hasEncrypted: req.body && typeof req.body === 'object' && 'encrypted' in req.body,
-        bodyKeys: req.body && typeof req.body === 'object' ? Object.keys(req.body) : null,
-        encryptedValueType: req.body?.encrypted ? typeof req.body.encrypted : null
-      });
       return res.status(400).json({
         success: false,
-        error: 'Failed to decrypt request data',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: 'Failed to decrypt request data'
       });
     }
   }
